@@ -16,31 +16,77 @@ describe("formatSubmission", () => {
     expect(formatSubmission([], columns)).toBe("");
   });
 
-  it("writes one line per item in column order", () => {
-    expect(formatSubmission([item("A", "j", "1"), item("B", "k", "2")], columns)).toBe(
-      "A | Job number: j | Quantity: 1\nB | Job number: k | Quantity: 2",
-    );
+  it("outputs a JSON array keyed by Code then the column labels, without id", () => {
+    const parsed = JSON.parse(formatSubmission([item("A", "j", "1"), item("B")], columns));
+
+    expect(parsed).toEqual([
+      { Code: "A", "Job number": "j", Quantity: "1" },
+      { Code: "B", "Job number": "", Quantity: "" },
+    ]);
+    expect(Object.keys(parsed[0])).toEqual(["Code", "Job number", "Quantity"]);
+    expect(parsed[0]).not.toHaveProperty("id");
   });
 
-  it("keeps empty values as 'Label: '", () => {
-    expect(formatSubmission([item("A")], columns)).toBe("A | Job number:  | Quantity: ");
-  });
+  it("gives colliding and duplicate labels unique keys", () => {
+    const clashing: ColumnConfig[] = [
+      { key: "a", label: "code", type: "text" },
+      { key: "b", label: "Notes", type: "text" },
+      { key: "c", label: "notes", type: "text" },
+    ];
+    const items: ScannedItem[] = [
+      { id: "1", code: "X", values: { a: "1", b: "2", c: "3" } },
+    ];
 
-  it("keeps colons in URLs and values", () => {
-    expect(formatSubmission([item("https://example.com:8080/a", "J: 1")], columns)).toBe(
-      "https://example.com:8080/a | Job number: J: 1 | Quantity: ",
-    );
-  });
-
-  it("sanitises separators and line breaks", () => {
-    const output = formatSubmission([item("A | B\r\nC", "x | y\nz ", " q")], columns);
-
-    expect(output).toBe("A / B C | Job number: x / y z | Quantity: q");
-    expect(output).not.toMatch(/[\r\n]/);
+    expect(JSON.parse(formatSubmission(items, clashing))).toEqual([
+      { Code: "X", "code 2": "1", Notes: "2", "notes 2": "3" },
+    ]);
   });
 });
-
 describe("parseSubmission", () => {
+  it("round-trips quotes, colons, pipes and unicode", () => {
+    const items = [
+      item('He said "hi": a | b', "ünï — 日本語 😀", "1"),
+      item("https://example.com:8080/x", "", ""),
+    ];
+
+    const { rows, unmatched } = parseSubmission(formatSubmission(items, columns), columns);
+
+    expect(unmatched).toEqual([]);
+    expect(rows).toEqual(items.map(({ code, values }) => ({ code, values })));
+  });
+
+  it("restores earlier submissions keyed by column key", () => {
+    const legacy = [{ Code: "A", job: "j", qty: "2" }];
+    const keyed: ColumnConfig[] = [
+      { key: "job_number", label: "Job number", type: "text" },
+      { key: "quantity_ex", label: "Quantity (ex)", type: "number" },
+    ];
+    const text = JSON.stringify([{ code: "A", job_number: "j", quantity_ex: 2 }]);
+
+    expect(parseSubmission(text, keyed).rows).toEqual([
+      { code: "A", values: { job_number: "j", quantity_ex: "2" } },
+    ]);
+    expect(parseSubmission(JSON.stringify(legacy), columns).unmatched).toEqual([]);
+  });
+
+  it("matches JSON labels case-insensitively and reports unmatched properties", () => {
+    const text = JSON.stringify([{ CODE: "A", "JOB NUMBER": "j", Colour: "red" }]);
+    const { rows, unmatched } = parseSubmission(text, columns);
+
+    expect(unmatched).toEqual(["Colour"]);
+    expect(rows).toEqual([{ code: "A", values: { job: "j", qty: "" } }]);
+  });
+
+  it("skips JSON entries without a code", () => {
+    const text = JSON.stringify([{ "Job number": "j" }, { Code: "", Quantity: "1" }, "x"]);
+
+    expect(parseSubmission(text, columns).rows).toEqual([]);
+  });
+
+  it("returns no rows for invalid JSON", () => {
+    expect(parseSubmission("[{oops", columns)).toEqual({ rows: [], unmatched: [] });
+  });
+
   it("round-trips codes and values, including colons", () => {
     const items = [
       item("https://example.com:8080/path?a=b", "J: 1", "3"),
