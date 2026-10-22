@@ -43,9 +43,6 @@ export const PUBLIC_CLASSES = [
   "bsit-scanned-items__input--text",
   "bsit-scanned-items__input--number",
   "bsit-scanned-items__delete",
-  "bsit-submission-preview",
-  "bsit-submission-preview__title",
-  "bsit-submission-preview__json",
 ] as const;
 
 export const PUBLIC_TOKENS = [

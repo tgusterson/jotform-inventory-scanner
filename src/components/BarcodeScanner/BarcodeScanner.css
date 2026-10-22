@@ -8,19 +8,4 @@
         margin-bottom: var(--bsit-space-4);
         color: var(--bsit-color-error);
     }
-
-    .bsit-submission-preview__title {
-        margin-bottom: var(--bsit-space-2);
-    }
-
-    .bsit-submission-preview__json {
-        max-width: 100%;
-        margin: 0;
-        padding: var(--bsit-space-3);
-        overflow-x: auto;
-        border-radius: var(--bsit-radius);
-        background-color: var(--bsit-color-surface);
-        font-family: var(--bsit-font-family-mono);
-        font-size: var(--bsit-font-size-small);
-    }
 }

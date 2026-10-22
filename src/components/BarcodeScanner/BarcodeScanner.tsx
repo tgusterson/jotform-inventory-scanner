@@ -162,16 +162,6 @@ export function BarcodeScanner({
         onValueChange={updateValue}
         onDelete={deleteItem}
       />
-
-      {import.meta.env.DEV && (
-        <div className="bsit-submission-preview">
-          <h2 className="bsit-submission-preview__title">Submission preview</h2>
-
-          <pre className="bsit-submission-preview__json">
-            {formatSubmission(items, columns)}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }
