@@ -1,0 +1,43 @@
+/*
+ * Public design tokens. Override these from the Jotform widget "Custom CSS" tab.
+ * Renaming or removing a token is a breaking change.
+ *
+ * Responsive breakpoint: the layout switches from cards to a table at 600px.
+ * Custom properties can't be used in media queries, so the value is
+ * hard-coded as (min-width: 600px) in ScannedItemsTable.css.
+ */
+
+@layer bsit {
+    :root {
+        /* Colours */
+        --bsit-color-primary: #1f6feb;
+        --bsit-color-primary-text: #ffffff;
+        --bsit-color-text: #1f2933;
+        --bsit-color-text-muted: #52606d;
+        --bsit-color-border: #9aa5b1;
+        --bsit-color-background: #ffffff;
+        --bsit-color-surface: #f5f7fa;
+        --bsit-color-success: #22c55e;
+        --bsit-color-error: #b00020;
+        --bsit-color-overlay: rgba(0, 0, 0, 0.5);
+        --bsit-color-camera-background: #000000;
+
+        /* Typography */
+        --bsit-font-family: Arial, Helvetica, sans-serif;
+        --bsit-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --bsit-font-size-base: 1.6rem;
+        --bsit-font-size-small: 1.4rem;
+
+        /* Spacing scale (0.4rem steps) */
+        --bsit-space-1: 0.4rem;
+        --bsit-space-2: 0.8rem;
+        --bsit-space-3: 1.2rem;
+        --bsit-space-4: 1.6rem;
+        --bsit-space-5: 2rem;
+        --bsit-space-6: 2.4rem;
+
+        /* Shape and sizing */
+        --bsit-radius: 0.8rem;
+        --bsit-input-height: 4.4rem;
+    }
+}

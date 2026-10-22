@@ -105,10 +105,10 @@ describe("ScannedItemsTable", () => {
       renderTable({ items: longItems });
 
       const toggle = screen.getByRole("button", { name: "Show full code" });
-      const code = screen.getByText(longCode);
+      const cell = screen.getByText(longCode).closest("[data-expanded]");
 
       expect(toggle).toHaveAttribute("aria-expanded", "false");
-      expect(code).not.toHaveClass("scanned-items__code--expanded");
+      expect(cell).toHaveAttribute("data-expanded", "false");
 
       await user.click(toggle);
 
@@ -116,11 +116,11 @@ describe("ScannedItemsTable", () => {
         "aria-expanded",
         "true",
       );
-      expect(code).toHaveClass("scanned-items__code--expanded");
+      expect(cell).toHaveAttribute("data-expanded", "true");
 
       await user.click(screen.getByRole("button", { name: "Show less" }));
 
-      expect(code).not.toHaveClass("scanned-items__code--expanded");
+      expect(cell).toHaveAttribute("data-expanded", "false");
     });
   });
 });

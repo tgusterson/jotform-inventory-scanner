@@ -86,7 +86,7 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
   }
 
   return (
-    <div className="barcode-scanner">
+    <div className="bsit-barcode-scanner">
       {isCameraOpen && (
         <CameraView
           onDecode={handleDecode}
@@ -102,7 +102,7 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
       />
 
       {error && (
-        <p className="barcode-scanner__error" role="alert">
+        <p className="bsit-barcode-scanner__error" role="alert">
           {error}
         </p>
       )}
@@ -115,13 +115,13 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
       />
 
       {import.meta.env.DEV && (
-        <>
-          <h2 className="submission-preview__title">Submission preview</h2>
+        <div className="bsit-submission-preview">
+          <h2 className="bsit-submission-preview__title">Submission preview</h2>
 
-          <pre className="submission-preview__json">
+          <pre className="bsit-submission-preview__json">
             {JSON.stringify(toSubmissionRows(items), null, 2)}
           </pre>
-        </>
+        </div>
       )}
     </div>
   );

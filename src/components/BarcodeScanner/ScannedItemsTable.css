@@ -1,0 +1,172 @@
+/* Cards below 600px, table-like layout from 600px (see tokens.css). */
+
+@layer bsit {
+    .bsit-scanned-items {
+        display: block;
+        width: 100%;
+        margin-bottom: var(--bsit-space-5);
+    }
+
+    .bsit-scanned-items__empty {
+        margin-bottom: var(--bsit-space-5);
+        color: var(--bsit-color-text-muted);
+    }
+
+    /* Header row stays available to screen readers but is hidden in card layout. */
+    .bsit-scanned-items__head {
+        position: absolute;
+        width: 0.1rem;
+        height: 0.1rem;
+        margin: -0.1rem;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .bsit-scanned-items__row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--bsit-space-3);
+        margin-bottom: var(--bsit-space-3);
+        padding: var(--bsit-space-3);
+        border: 1px solid var(--bsit-color-border);
+        border-radius: var(--bsit-radius);
+        background-color: var(--bsit-color-background);
+    }
+
+    .bsit-scanned-items__cell {
+        display: flex;
+        flex-direction: column;
+        gap: var(--bsit-space-1);
+        min-width: 0;
+    }
+
+    .bsit-scanned-items__cell--action {
+        align-items: flex-end;
+    }
+
+    .bsit-scanned-items__label {
+        font-size: var(--bsit-font-size-small);
+        font-weight: bold;
+        color: var(--bsit-color-text-muted);
+    }
+
+    .bsit-scanned-items__code {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        font-family: var(--bsit-font-family-mono);
+        font-size: var(--bsit-font-size-small);
+    }
+
+    .bsit-scanned-items__cell--code[data-expanded="true"] .bsit-scanned-items__code {
+        display: block;
+        -webkit-line-clamp: unset;
+        line-clamp: unset;
+        overflow: visible;
+    }
+
+    .bsit-scanned-items__toggle {
+        align-self: flex-start;
+        min-height: var(--bsit-input-height);
+        padding: 0 var(--bsit-space-1);
+        border: 0;
+        background: transparent;
+        color: var(--bsit-color-primary);
+        font-size: var(--bsit-font-size-small);
+        text-decoration: underline;
+    }
+
+    .bsit-scanned-items__input {
+        width: 100%;
+        min-width: 0;
+        min-height: var(--bsit-input-height);
+        padding: 0 var(--bsit-space-3);
+        border: 1px solid var(--bsit-color-border);
+        border-radius: calc(var(--bsit-radius) / 2);
+        background-color: var(--bsit-color-background);
+        color: var(--bsit-color-text);
+        font-size: var(--bsit-font-size-base);
+    }
+
+    .bsit-scanned-items__delete {
+        min-height: var(--bsit-input-height);
+        padding: 0 var(--bsit-space-4);
+        font-size: var(--bsit-font-size-base);
+    }
+
+    @media (min-width: 600px) {
+        .bsit-scanned-items {
+            display: table;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+
+        .bsit-scanned-items__head,
+        .bsit-scanned-items__body {
+            position: static;
+            width: auto;
+            height: auto;
+            margin: 0;
+            overflow: visible;
+            clip-path: none;
+            white-space: normal;
+        }
+
+        .bsit-scanned-items__head {
+            display: table-header-group;
+        }
+
+        .bsit-scanned-items__body {
+            display: table-row-group;
+        }
+
+        .bsit-scanned-items__row {
+            display: table-row;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+        }
+
+        .bsit-scanned-items__header,
+        .bsit-scanned-items__cell {
+            display: table-cell;
+            padding: var(--bsit-space-2);
+            border-bottom: 1px solid var(--bsit-color-border);
+            vertical-align: top;
+        }
+
+        .bsit-scanned-items__header {
+            text-align: left;
+            font-size: var(--bsit-font-size-small);
+        }
+
+        .bsit-scanned-items__header--code {
+            width: 35%;
+        }
+
+        .bsit-scanned-items__header--number {
+            width: 9rem;
+        }
+
+        .bsit-scanned-items__header--action {
+            width: 10rem;
+        }
+
+        /* The column header names the field, so the label is screen-reader only. */
+        .bsit-scanned-items__label {
+            position: absolute;
+            width: 0.1rem;
+            height: 0.1rem;
+            margin: -0.1rem;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+}

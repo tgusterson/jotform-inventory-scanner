@@ -1,0 +1,34 @@
+@layer bsit {
+    .bsit-scanner-controls {
+        display: flex;
+        flex-direction: column;
+        gap: var(--bsit-space-2);
+        margin-bottom: var(--bsit-space-5);
+    }
+
+    .bsit-scanner-controls__open {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--bsit-space-1);
+        padding: calc(var(--bsit-space-4) * 2) var(--bsit-space-4);
+        border: 1px dashed var(--bsit-color-border);
+        border-radius: var(--bsit-radius);
+        background-color: var(--bsit-color-surface);
+        color: var(--bsit-color-text);
+    }
+
+    .bsit-scanner-controls__open-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+
+    .bsit-scanner-controls__open-hint {
+        font-size: var(--bsit-font-size-small);
+        color: var(--bsit-color-text-muted);
+    }
+
+    .bsit-scanner-controls__clear {
+        min-height: var(--bsit-input-height);
+    }
+}

@@ -1,3 +1,5 @@
+@layer bsit-reset, bsit;
+
 /*
  * Global reset
  *
@@ -6,74 +8,73 @@
  * the user's browser font-size preference.
  */
 
-html {
-    box-sizing: border-box;
-    font-size: 62.5%;
-}
+@layer bsit-reset {
+    html {
+        box-sizing: border-box;
+        font-size: 62.5%;
+    }
 
-*,
-*::before,
-*::after {
-    box-sizing: inherit;
-}
+    *,
+    *::before,
+    *::after {
+        box-sizing: inherit;
+    }
 
-html,
-body,
-#root {
-    min-height: 100%;
-}
+    html,
+    body,
+    #root {
+        min-height: 100%;
+    }
 
-body {
-    margin: 0;
-    min-width: 320px;
+    body {
+        margin: 0;
+        min-width: 320px;
 
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-    font-size: 1.6rem;
-    line-height: 1.5;
+        font-family: var(--bsit-font-family);
+        font-size: var(--bsit-font-size-base);
+        line-height: 1.5;
 
-    color: #1f2933;
-    background-color: #ffffff;
+        color: var(--bsit-color-text);
+        background-color: var(--bsit-color-background);
 
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
 
-h1,
-h2,
-h3,
-p {
-    margin-block-start: 0;
-}
+    h1,
+    h2,
+    h3,
+    p {
+        margin-block-start: 0;
+    }
 
-button,
-input,
-select,
-textarea {
-    font: inherit;
-}
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
 
-button {
-    cursor: pointer;
-}
+    button {
+        cursor: pointer;
+    }
 
-button:disabled {
-    cursor: not-allowed;
-}
+    button:disabled {
+        cursor: not-allowed;
+    }
 
-img,
-picture,
-svg,
-video,
-canvas {
-    display: block;
-    max-width: 100%;
-}
+    img,
+    picture,
+    svg,
+    video,
+    canvas {
+        display: block;
+        max-width: 100%;
+    }
 
-table {
-    border-collapse: collapse;
-    border-spacing: 0;
+    table {
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
 }

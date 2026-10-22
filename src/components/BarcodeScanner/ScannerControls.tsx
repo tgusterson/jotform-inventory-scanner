@@ -1,3 +1,5 @@
+import "./ScannerControls.css";
+
 type ScannerControlsProps = {
     hasItems: boolean;
     onOpenCamera: () => void;
@@ -10,19 +12,23 @@ export function ScannerControls({
     onClear,
 }: ScannerControlsProps) {
     return (
-        <div className="scanner-controls">
+        <div className="bsit-scanner-controls">
             <button
                 type="button"
-                className="scanner-controls__open"
+                className="bsit-scanner-controls__open"
                 onClick={onOpenCamera}
             >
-                <span className="scanner-controls__open-title">Open camera</span>
-                <span className="scanner-controls__open-hint">
+                <span className="bsit-scanner-controls__open-title">Open camera</span>
+                <span className="bsit-scanner-controls__open-hint">
                     Scan a barcode or QR code with your device camera
                 </span>
             </button>
 
-            <button type="button" onClick={onClear} disabled={!hasItems}>
+            <button
+                type="button"
+                className="bsit-scanner-controls__clear"
+                onClick={onClear}
+                disabled={!hasItems}>
                 Clear all
             </button>
         </div>

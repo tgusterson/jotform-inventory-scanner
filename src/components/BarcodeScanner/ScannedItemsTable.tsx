@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import "./ScannedItemsTable.css";
 import type { ColumnConfig, ScannedItem } from "./types";
 
 const LONG_CODE_LENGTH = 40;
@@ -34,18 +35,18 @@ export function ScannedItemsTable({
 
     if (items.length === 0) {
         return (
-            <p className="scanned-items__empty">
+            <p className="bsit-scanned-items__empty">
                 Scan a barcode or QR code to add the first row.
             </p>
         );
     }
 
     return (
-        <div className="scanned-items" role="table" aria-label="Scanned items">
-            <div className="scanned-items__head" role="rowgroup">
-                <div className="scanned-items__row scanned-items__row--header" role="row">
+        <div className="bsit-scanned-items" role="table" aria-label="Scanned items">
+            <div className="bsit-scanned-items__head" role="rowgroup">
+                <div className="bsit-scanned-items__row bsit-scanned-items__row--header" role="row">
                     <div
-                        className="scanned-items__header scanned-items__header--code"
+                        className="bsit-scanned-items__header bsit-scanned-items__header--code"
                         role="columnheader"
                     >
                         Code
@@ -53,14 +54,14 @@ export function ScannedItemsTable({
                     {columns.map((column) => (
                         <div
                             key={column.key}
-                            className={`scanned-items__header scanned-items__header--${column.type}`}
+                            className={`bsit-scanned-items__header bsit-scanned-items__header--${column.type}`}
                             role="columnheader"
                         >
                             {column.label}
                         </div>
                     ))}
                     <div
-                        className="scanned-items__header scanned-items__header--action"
+                        className="bsit-scanned-items__header bsit-scanned-items__header--action"
                         role="columnheader"
                     >
                         Action
@@ -68,25 +69,22 @@ export function ScannedItemsTable({
                 </div>
             </div>
 
-            <div className="scanned-items__body" role="rowgroup">
+            <div className="bsit-scanned-items__body" role="rowgroup">
                 {items.map((item) => {
                     const isLong = item.code.length > LONG_CODE_LENGTH;
                     const isExpanded = expandedIds.has(item.id);
                     const codeId = `${baseId}-${item.id}-code`;
 
                     return (
-                        <div key={item.id} className="scanned-items__row" role="row">
+                        <div key={item.id} className="bsit-scanned-items__row" role="row">
                             <div
-                                className="scanned-items__cell scanned-items__cell--code"
+                                className="bsit-scanned-items__cell bsit-scanned-items__cell--code"
                                 role="cell"
+                                data-expanded={isExpanded}
                             >
                                 <span
                                     id={codeId}
-                                    className={
-                                        isExpanded
-                                            ? "scanned-items__code scanned-items__code--expanded"
-                                            : "scanned-items__code"
-                                    }
+                                    className="bsit-scanned-items__code"
                                     title={item.code}
                                 >
                                     {item.code}
@@ -95,7 +93,7 @@ export function ScannedItemsTable({
                                 {isLong && (
                                     <button
                                         type="button"
-                                        className="scanned-items__toggle"
+                                        className="bsit-scanned-items__toggle"
                                         aria-expanded={isExpanded}
                                         aria-controls={codeId}
                                         onClick={() => toggleExpanded(item.id)}
@@ -111,25 +109,21 @@ export function ScannedItemsTable({
                                 return (
                                     <div
                                         key={column.key}
-                                        className="scanned-items__cell"
+                                        className="bsit-scanned-items__cell bsit-scanned-items__cell--field"
                                         role="cell"
                                     >
                                         <label
-                                            className="scanned-items__label"
+                                            className="bsit-scanned-items__label"
                                             htmlFor={inputId}
                                         >
                                             {column.label}
-                                            <span className="scanned-items__label-code">
+                                            <span className="bsit-scanned-items__label-code">
                                                 {" "}for {item.code}
                                             </span>
                                         </label>
                                         <input
                                             id={inputId}
-                                            className={
-                                                column.type === "number"
-                                                    ? "scanned-items__input scanned-items__input--number"
-                                                    : "scanned-items__input"
-                                            }
+                                            className={`bsit-scanned-items__input bsit-scanned-items__input--${column.type}`}
                                             type={column.type}
                                             inputMode={column.type === "number" ? "numeric" : undefined}
                                             value={item.values[column.key] ?? ""}
@@ -142,12 +136,12 @@ export function ScannedItemsTable({
                             })}
 
                             <div
-                                className="scanned-items__cell scanned-items__cell--action"
+                                className="bsit-scanned-items__cell bsit-scanned-items__cell--action"
                                 role="cell"
                             >
                                 <button
                                     type="button"
-                                    className="scanned-items__delete"
+                                    className="bsit-scanned-items__delete"
                                     onClick={() => onDelete(item.id)}
                                 >
                                     Delete

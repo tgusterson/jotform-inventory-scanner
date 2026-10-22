@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useZxing } from "react-zxing";
 import { isBoxInsideFrame } from "./isBoxInsideFrame";
+import "./CameraView.css";
 
 const SUCCESS_DELAY_MS = 250;
 
@@ -67,35 +68,32 @@ export function CameraView({ onDecode, onError, onClose }: CameraViewProps) {
 
     return (
         <div
-            className="camera-view"
+            className="bsit-camera-view"
             role="dialog"
             aria-modal="true"
             aria-label="Barcode scanner"
         >
-            <video ref={ref} className="camera-view__video" muted playsInline />
+            <video ref={ref} className="bsit-camera-view__video" muted playsInline />
 
             <div
                 ref={frameRef}
-                className={
-                    isSuccess
-                        ? "camera-view__frame camera-view__frame--success"
-                        : "camera-view__frame"
-                }
+                className="bsit-camera-view__frame"
+                data-state={isSuccess ? "success" : "scanning"}
                 aria-hidden="true"
             >
-                <span className="camera-view__corner camera-view__corner--top-left" />
-                <span className="camera-view__corner camera-view__corner--top-right" />
-                <span className="camera-view__corner camera-view__corner--bottom-left" />
-                <span className="camera-view__corner camera-view__corner--bottom-right" />
+                <span className="bsit-camera-view__corner bsit-camera-view__corner--top-left" />
+                <span className="bsit-camera-view__corner bsit-camera-view__corner--top-right" />
+                <span className="bsit-camera-view__corner bsit-camera-view__corner--bottom-left" />
+                <span className="bsit-camera-view__corner bsit-camera-view__corner--bottom-right" />
             </div>
 
-            <p className="camera-view__hint" aria-live="polite">
+            <p className="bsit-camera-view__hint" aria-live="polite">
                 {isSuccess ? "Scanned" : "Align the barcode within the frame to scan"}
             </p>
 
             <button
                 type="button"
-                className="camera-view__close"
+                className="bsit-camera-view__close"
                 onClick={onClose}
                 aria-label="Close camera"
             >
