@@ -3,8 +3,9 @@ import type { ColumnConfig } from "./components/BarcodeScanner/types";
 
 type AppProps = {
   columns: ColumnConfig[];
+  initialValue: string;
 };
 
-export default function App({ columns }: AppProps) {
-  return <BarcodeScanner columns={columns} />;
+export default function App({ columns, initialValue }: AppProps) {
+  return <BarcodeScanner columns={columns} initialValue={initialValue} />;
 }

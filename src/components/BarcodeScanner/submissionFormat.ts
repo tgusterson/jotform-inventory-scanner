@@ -5,27 +5,44 @@ export type ParsedSubmission = {
     unmatched: string[];
 };
 
-function flatten(text: string): string {
-    return text.replace(/\r\n|\n|\r/g, " ").trim();
+const HTML_ESCAPES: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+};
+
+function escapeHtml(text: string): string {
+    return text.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character]);
 }
 
 export function formatSubmission(
     items: ScannedItem[],
     columns: ColumnConfig[],
 ): string {
-    return items
-        .map((item, index) => {
-            const lines = [`${index + 1}. ${flatten(item.code)}`];
+    if (items.length === 0) {
+        return "";
+    }
 
-            for (const column of columns) {
-                lines.push(
-                    `   ${column.label}: ${flatten(item.values[column.key] ?? "")}`,
-                );
-            }
+    const headerCells = ["Code", ...columns.map((column) => column.label)]
+        .map((label) => `<th>${escapeHtml(label)}</th>`)
+        .join("");
 
-            return lines.join("\n");
+    const bodyRows = items
+        .map((item) => {
+            const cells = [
+                item.code,
+                ...columns.map((column) => item.values[column.key] ?? ""),
+            ]
+                .map((text) => `<td>${escapeHtml(text)}</td>`)
+                .join("");
+
+            return `<tr>${cells}</tr>`;
         })
-        .join("\n\n");
+        .join("");
+
+    return `<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
 }
 
 export function parseSubmission(
@@ -35,26 +52,42 @@ export function parseSubmission(
     const rows: ParsedSubmission["rows"] = [];
     const unmatched: string[] = [];
 
-    const blocks: string[][] = [];
-    let current: string[] = [];
+    const table = new DOMParser()
+        .parseFromString(text, "text/html")
+        .querySelector("table");
 
-    for (const line of text.split(/\r\n|\n|\r/)) {
-        if (line.trim() === "") {
-            if (current.length > 0) {
-                blocks.push(current);
-                current = [];
-            }
-        } else {
-            current.push(line);
+    if (!table) {
+        return { rows, unmatched };
+    }
+
+    const headerRow = table.querySelector("tr");
+    const headers = Array.from(headerRow?.querySelectorAll("th") ?? []).map(
+        (header) => (header.textContent ?? "").trim(),
+    );
+
+    // Index 0 is the code column; the rest map to configured columns.
+    const columnForIndex = headers.map((header, index) => {
+        if (index === 0) {
+            return undefined;
         }
-    }
 
-    if (current.length > 0) {
-        blocks.push(current);
-    }
+        const column = findColumn(columns, header);
 
-    for (const [firstLine, ...rest] of blocks) {
-        const code = firstLine.trim().replace(/^\d+\.\s*/, "").trim();
+        if (!column && !unmatched.includes(header)) {
+            unmatched.push(header);
+        }
+
+        return column;
+    });
+
+    for (const tr of Array.from(table.querySelectorAll("tr"))) {
+        const cells = Array.from(tr.querySelectorAll("td"));
+
+        if (cells.length === 0) {
+            continue;
+        }
+
+        const code = (cells[0].textContent ?? "").trim();
 
         if (!code) {
             continue;
@@ -62,32 +95,13 @@ export function parseSubmission(
 
         const values = Object.fromEntries(columns.map((column) => [column.key, ""]));
 
-        for (const rawLine of rest) {
-            const line = rawLine.trim();
-            const separatorIndex = line.indexOf(": ");
-            let label: string;
-            let value: string;
-
-            if (separatorIndex !== -1) {
-                label = line.slice(0, separatorIndex);
-                value = line.slice(separatorIndex + 2);
-            } else if (line.endsWith(":")) {
-                label = line.slice(0, -1);
-                value = "";
-            } else {
-                continue;
-            }
-
-            label = label.trim();
-
-            const column = findColumn(columns, label);
+        cells.forEach((cell, index) => {
+            const column = columnForIndex[index];
 
             if (column) {
-                values[column.key] = value.trim();
-            } else if (!unmatched.includes(label)) {
-                unmatched.push(label);
+                values[column.key] = (cell.textContent ?? "").trim();
             }
-        }
+        });
 
         rows.push({ code, values });
     }

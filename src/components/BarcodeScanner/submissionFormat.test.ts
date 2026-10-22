@@ -12,42 +12,44 @@ function item(code: string, job = "", qty = ""): ScannedItem {
 }
 
 describe("formatSubmission", () => {
-  it("formats a single item", () => {
-    expect(formatSubmission([item("ABC", "J1", "2")], columns)).toBe(
-      "1. ABC\n   Job number: J1\n   Quantity: 2",
-    );
-  });
-
-  it("separates multiple items with one blank line and numbers them", () => {
-    expect(formatSubmission([item("A", "j", "1"), item("B", "k", "2")], columns)).toBe(
-      "1. A\n   Job number: j\n   Quantity: 1\n\n2. B\n   Job number: k\n   Quantity: 2",
-    );
-  });
-
   it("returns an empty string for no items", () => {
     expect(formatSubmission([], columns)).toBe("");
   });
 
-  it("still outputs a line for empty values", () => {
-    const lines = formatSubmission([item("A")], columns).split("\n");
+  it("produces a single-line table with no newlines", () => {
+    const output = formatSubmission([item("A", "j", "1"), item("B")], columns);
 
-    expect(lines).toHaveLength(3);
-    expect(lines[1]).toMatch(/^ {3}Job number:\s*$/);
-    expect(lines[2]).toMatch(/^ {3}Quantity:\s*$/);
+    expect(output).not.toMatch(/[\r\n]/);
+    expect(output.startsWith("<table><thead>")).toBe(true);
+    expect(output.endsWith("</tbody></table>")).toBe(true);
   });
 
-  it("flattens line breaks in codes and values", () => {
-    const output = formatSubmission([item("A\r\nB\nC\rD", "x\ny ", " z")], columns);
+  it("orders headers and cells like the columns, with empty cells for empty values", () => {
+    expect(formatSubmission([item("A", "j", "")], columns)).toBe(
+      "<table><thead><tr><th>Code</th><th>Job number</th><th>Quantity</th></tr></thead>" +
+        "<tbody><tr><td>A</td><td>j</td><td></td></tr></tbody></table>",
+    );
+  });
 
-    expect(output).toBe("1. A B C D\n   Job number: x y\n   Quantity: z");
+  it("escapes codes, values and labels", () => {
+    const evil = `<script>alert(1)</script> & "x" 'y'`;
+    const output = formatSubmission(
+      [item(evil, evil)],
+      [{ key: "job", label: "<b>Job</b>", type: "text" }],
+    );
+
+    expect(output).not.toContain("<script>");
+    expect(output).not.toContain("<b>");
+    expect(output).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;x&quot; &#39;y&#39;");
   });
 });
 
 describe("parseSubmission", () => {
-  it("round-trips codes and values, including colons", () => {
+  it("round-trips codes and values, including special characters", () => {
+    const evil = `<script>alert(1)</script> & "x"`;
     const items = [
-      item("https://example.com:8080/path?a=b", "J: 1", "3"),
-      item("Part: 42", "", ""),
+      item(evil, "J: 1", "3"),
+      item("https://example.com:8080/a?b=c&d=e", "", ""),
     ];
 
     const { rows, unmatched } = parseSubmission(formatSubmission(items, columns), columns);
@@ -56,41 +58,51 @@ describe("parseSubmission", () => {
     expect(rows).toEqual(items.map(({ code, values }) => ({ code, values })));
   });
 
-  it("accepts \\r\\n line endings", () => {
-    const text = "1. A\r\n   Job number: j\r\n   Quantity: 1\r\n\r\n2. B\r\n   Job number: k\r\n   Quantity: 2";
+  it("matches headers case-insensitively", () => {
+    const html =
+      "<table><thead><tr><th>Code</th><th>JOB NUMBER</th><th>quantity</th></tr></thead>" +
+      "<tbody><tr><td>A</td><td>j</td><td>4</td></tr></tbody></table>";
 
-    expect(parseSubmission(text, columns).rows).toEqual([
-      { code: "A", values: { job: "j", qty: "1" } },
-      { code: "B", values: { job: "k", qty: "2" } },
-    ]);
-  });
-
-  it("splits blocks on multiple blank lines and handles a trailing colon", () => {
-    const text = "1. A\n   Job number:\n\n\n\n2. B\n   Quantity: 5";
-
-    expect(parseSubmission(text, columns).rows).toEqual([
-      { code: "A", values: { job: "", qty: "" } },
-      { code: "B", values: { job: "", qty: "5" } },
-    ]);
-  });
-
-  it("reports unmatched labels without adding them to the values", () => {
-    const text = "1. A\n   Job number: j\n   Colour: red\n\n2. B\n   Colour: blue";
-    const { rows, unmatched } = parseSubmission(text, columns);
-
-    expect(unmatched).toEqual(["Colour"]);
-    expect(rows[0].values).toEqual({ job: "j", qty: "" });
-  });
-
-  it("matches labels case-insensitively", () => {
-    const { rows, unmatched } = parseSubmission("1. A\n   JOB NUMBER: j\n   quantity: 4", columns);
+    const { rows, unmatched } = parseSubmission(html, columns);
 
     expect(unmatched).toEqual([]);
-    expect(rows[0].values).toEqual({ job: "j", qty: "4" });
+    expect(rows).toEqual([{ code: "A", values: { job: "j", qty: "4" } }]);
   });
 
-  it("ignores blocks without a code", () => {
-    expect(parseSubmission("1. \n   Job number: j", columns).rows).toEqual([]);
+  it("reports unmatched headers once and ignores their cells", () => {
+    const html =
+      "<table><thead><tr><th>Code</th><th>Colour</th><th>Job number</th><th>Colour</th></tr></thead>" +
+      "<tbody><tr><td>A</td><td>red</td><td>j</td><td>blue</td></tr></tbody></table>";
+
+    const { rows, unmatched } = parseSubmission(html, columns);
+
+    expect(unmatched).toEqual(["Colour"]);
+    expect(rows).toEqual([{ code: "A", values: { job: "j", qty: "" } }]);
+  });
+
+  it("defaults configured columns missing from the table to an empty string", () => {
+    const html =
+      "<table><thead><tr><th>Code</th><th>Job number</th></tr></thead>" +
+      "<tbody><tr><td>A</td><td>j</td></tr></tbody></table>";
+
+    expect(parseSubmission(html, columns).rows).toEqual([
+      { code: "A", values: { job: "j", qty: "" } },
+    ]);
+  });
+
+  it("skips rows with an empty code", () => {
+    const html =
+      "<table><thead><tr><th>Code</th><th>Job number</th></tr></thead>" +
+      "<tbody><tr><td> </td><td>j</td></tr></tbody></table>";
+
+    expect(parseSubmission(html, columns).rows).toEqual([]);
+  });
+
+  it("returns no rows for non-table input", () => {
     expect(parseSubmission("", columns)).toEqual({ rows: [], unmatched: [] });
+    expect(parseSubmission("1. A\n   Job number: j", columns)).toEqual({
+      rows: [],
+      unmatched: [],
+    });
   });
 });

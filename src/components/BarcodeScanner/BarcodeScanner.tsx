@@ -3,17 +3,44 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { CameraView } from "./CameraView";
 import { ScannerControls } from "./ScannerControls";
 import { ScannedItemsTable } from "./ScannedItemsTable";
-import type { ColumnConfig } from "./types";
+import type { ColumnConfig, ScannedItem } from "./types";
 import { itemsReducer } from "./itemsReducer";
-import { formatSubmission } from "./submissionFormat";
+import { formatSubmission, parseSubmission } from "./submissionFormat";
+import { log } from "./debug";
 import { getJotform } from "./jotform";
 
 type BarcodeScannerProps = {
   columns: ColumnConfig[];
+  initialValue?: string;
 };
 
-export function BarcodeScanner({ columns }: BarcodeScannerProps) {
-  const [items, dispatch] = useReducer(itemsReducer, []);
+function initItems({
+  columns,
+  initialValue,
+}: {
+  columns: ColumnConfig[];
+  initialValue: string;
+}): ScannedItem[] {
+  const { rows, unmatched } = parseSubmission(initialValue, columns);
+
+  log("restored rows", rows);
+
+  if (unmatched.length > 0) {
+    log("unmatched columns", unmatched);
+  }
+
+  return rows.map((row) => ({ id: crypto.randomUUID(), ...row }));
+}
+
+export function BarcodeScanner({
+  columns,
+  initialValue = "",
+}: BarcodeScannerProps) {
+  const [items, dispatch] = useReducer(
+    itemsReducer,
+    { columns, initialValue },
+    initItems,
+  );
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [error, setError] = useState("");
   const itemsRef = useRef(items);
@@ -38,6 +65,8 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
 
     jotform.subscribe("submit", () => {
       const value = formatSubmission(itemsRef.current, columnsRef.current);
+
+      log("submit value", value);
 
       // TODO: replace the placeholder valid flag once validation is added.
       jotform.sendSubmit({ valid: true, value });
@@ -127,6 +156,12 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
           <pre className="bsit-submission-preview__json">
             {formatSubmission(items, columns)}
           </pre>
+
+          {/* Safe: formatSubmission escapes every code, value and label. */}
+          <div
+            className="bsit-submission-preview__rendered"
+            dangerouslySetInnerHTML={{ __html: formatSubmission(items, columns) }}
+          />
         </div>
       )}
     </div>
