@@ -1,0 +1,134 @@
+.barcode-scanner__error {
+    margin-bottom: 1.6rem;
+    color: #b00020;
+}
+
+/* Scanner controls */
+
+.scanner-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+}
+
+.scanner-controls__open {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 3.2rem 1.6rem;
+    border: 1px dashed #9aa5b1;
+    border-radius: 0.8rem;
+    background-color: #f5f7fa;
+    color: #1f2933;
+}
+
+.scanner-controls__open-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.scanner-controls__open-hint {
+    font-size: 1.4rem;
+    color: #52606d;
+}
+
+/* Camera */
+
+.camera-view {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    overflow: hidden;
+    background-color: #000000;
+}
+
+.camera-view__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-view__frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(85%, 48rem);
+    aspect-ratio: 16 / 10;
+    transform: translate(-50%, -50%);
+
+    /* Darkens everything outside the frame. */
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
+}
+
+.camera-view__corner {
+    position: absolute;
+    width: 3.2rem;
+    height: 3.2rem;
+    border: 0 solid #ffffff;
+    transition: border-color 150ms ease-out;
+}
+
+.camera-view__corner--top-left {
+    top: 0;
+    left: 0;
+    border-top-width: 0.4rem;
+    border-left-width: 0.4rem;
+}
+
+.camera-view__corner--top-right {
+    top: 0;
+    right: 0;
+    border-top-width: 0.4rem;
+    border-right-width: 0.4rem;
+}
+
+.camera-view__corner--bottom-left {
+    bottom: 0;
+    left: 0;
+    border-bottom-width: 0.4rem;
+    border-left-width: 0.4rem;
+}
+
+.camera-view__corner--bottom-right {
+    bottom: 0;
+    right: 0;
+    border-bottom-width: 0.4rem;
+    border-right-width: 0.4rem;
+}
+
+.camera-view__frame {
+    transition: background-color 150ms ease-out;
+}
+
+.camera-view__frame--success {
+    background-color: rgba(34, 197, 94, 0.25);
+}
+
+.camera-view__frame--success .camera-view__corner {
+    border-color: #22c55e;
+}
+
+.camera-view__hint {
+    position: absolute;
+    right: 1.6rem;
+    bottom: 4rem;
+    left: 1.6rem;
+    margin: 0;
+    text-align: center;
+    color: #ffffff;
+}
+
+.camera-view__close {
+    position: absolute;
+    top: 1.6rem;
+    right: 1.6rem;
+    width: 4.8rem;
+    height: 4.8rem;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font-size: 4rem;
+    line-height: 1;
+}
