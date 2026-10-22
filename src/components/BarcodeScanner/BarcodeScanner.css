@@ -34,6 +34,11 @@
     color: #52606d;
 }
 
+.scanned-items__input--number {
+    width: 8rem;
+    min-width: 0;
+}
+
 /* Camera */
 
 .camera-view {

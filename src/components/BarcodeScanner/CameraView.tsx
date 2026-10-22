@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useZxing } from "react-zxing";
 import { isBoxInsideFrame } from "./isBoxInsideFrame";
 
-const SUCCESS_DELAY_MS = 500;
+const SUCCESS_DELAY_MS = 250;
 
 type CameraViewProps = {
     onDecode: (code: string) => void;
@@ -52,11 +52,11 @@ export function CameraView({ onDecode, onError, onClose }: CameraViewProps) {
             // Short vibration on devices that support it.
             navigator.vibrate?.(100);
 
-            const code = result.rawValue;
+            // Save the scan straight away.
+            onDecode(result.rawValue);
 
-            successTimeoutRef.current = window.setTimeout(() => {
-                onDecode(code);
-            }, SUCCESS_DELAY_MS);
+            // Keep the green frame visible briefly, then close.
+            successTimeoutRef.current = window.setTimeout(onClose, SUCCESS_DELAY_MS);
         },
 
         onError(cameraError) {

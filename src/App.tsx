@@ -1,7 +1,10 @@
-import { BarcodeScanner } from "./components/BarcodeScanner";
+import { BarcodeScanner } from "./components/BarcodeScanner/BarcodeScanner";
+import type { ColumnConfig } from "./components/BarcodeScanner/types";
 
-function App() {
-  return <BarcodeScanner />;
+type AppProps = {
+  columns: ColumnConfig[];
+};
+
+export default function App({ columns }: AppProps) {
+  return <BarcodeScanner columns={columns} />;
 }
-
-export default App;
