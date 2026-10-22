@@ -65,4 +65,62 @@ describe("ScannedItemsTable", () => {
 
     expect(onDelete).toHaveBeenCalledWith("item-1");
   });
+
+  it("gives every input a label containing its column label and the code", () => {
+    renderTable();
+
+    expect(screen.getByLabelText(/Job number/)).toHaveAttribute("type", "text");
+    expect(screen.getByLabelText(/Quantity/)).toHaveAttribute("type", "number");
+    expect(screen.getByLabelText("Quantity for ABC123")).toBeInTheDocument();
+  });
+
+  it("keeps the full code in the title attribute", () => {
+    renderTable();
+
+    expect(screen.getByText("ABC123")).toHaveAttribute("title", "ABC123");
+  });
+
+  describe("full code toggle", () => {
+    const longCode = "https://example.com/" + "a".repeat(40);
+    const longItems: ScannedItem[] = [
+      { id: "long", code: longCode, values: { job: "", qty: "1" } },
+    ];
+
+    it("is not shown for short codes", () => {
+      renderTable();
+
+      expect(screen.queryByRole("button", { name: "Show full code" })).not.toBeInTheDocument();
+    });
+
+    it("is not shown for a code of exactly 40 characters", () => {
+      renderTable({
+        items: [{ id: "x", code: "a".repeat(40), values: { job: "", qty: "1" } }],
+      });
+
+      expect(screen.queryByRole("button", { name: "Show full code" })).not.toBeInTheDocument();
+    });
+
+    it("expands and collapses a long code", async () => {
+      const user = userEvent.setup();
+      renderTable({ items: longItems });
+
+      const toggle = screen.getByRole("button", { name: "Show full code" });
+      const code = screen.getByText(longCode);
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(code).not.toHaveClass("scanned-items__code--expanded");
+
+      await user.click(toggle);
+
+      expect(screen.getByRole("button", { name: "Show less" })).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      expect(code).toHaveClass("scanned-items__code--expanded");
+
+      await user.click(screen.getByRole("button", { name: "Show less" }));
+
+      expect(code).not.toHaveClass("scanned-items__code--expanded");
+    });
+  });
 });

@@ -34,9 +34,174 @@
     color: #52606d;
 }
 
-.scanned-items__input--number {
-    width: 8rem;
+/* Scanned items: cards below 600px, table-like layout from 600px */
+
+.scanned-items {
+    display: block;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.scanned-items__empty {
+    margin-bottom: 2rem;
+    color: #52606d;
+}
+
+/* Header row stays available to screen readers but is hidden in card layout. */
+.scanned-items__head {
+    position: absolute;
+    width: 0.1rem;
+    height: 0.1rem;
+    margin: -0.1rem;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.scanned-items__row {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-bottom: 1.2rem;
+    padding: 1.2rem;
+    border: 1px solid #cbd2d9;
+    border-radius: 0.8rem;
+    background-color: #ffffff;
+}
+
+.scanned-items__cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
     min-width: 0;
+}
+
+.scanned-items__cell--action {
+    align-items: flex-end;
+}
+
+.scanned-items__label {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #52606d;
+}
+
+.scanned-items__code {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.4rem;
+}
+
+.scanned-items__code--expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+}
+
+.scanned-items__toggle {
+    align-self: flex-start;
+    min-height: 4.4rem;
+    padding: 0 0.4rem;
+    border: 0;
+    background: transparent;
+    color: #1f6feb;
+    font-size: 1.4rem;
+    text-decoration: underline;
+}
+
+.scanned-items__input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 4.4rem;
+    padding: 0 1.2rem;
+    border: 1px solid #9aa5b1;
+    border-radius: 0.4rem;
+    font-size: 1.6rem;
+}
+
+.scanned-items__delete {
+    min-height: 4.4rem;
+    padding: 0 1.6rem;
+    font-size: 1.6rem;
+}
+
+@media (min-width: 600px) {
+    .scanned-items {
+        display: table;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .scanned-items__head,
+    .scanned-items__body {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        overflow: visible;
+        clip-path: none;
+        white-space: normal;
+    }
+
+    .scanned-items__head {
+        display: table-header-group;
+    }
+
+    .scanned-items__body {
+        display: table-row-group;
+    }
+
+    .scanned-items__row {
+        display: table-row;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .scanned-items__header,
+    .scanned-items__cell {
+        display: table-cell;
+        padding: 0.8rem;
+        border-bottom: 1px solid #cbd2d9;
+        vertical-align: top;
+    }
+
+    .scanned-items__header {
+        text-align: left;
+        font-size: 1.4rem;
+    }
+
+    .scanned-items__header--code {
+        width: 35%;
+    }
+
+    .scanned-items__header--number {
+        width: 9rem;
+    }
+
+    .scanned-items__header--action {
+        width: 10rem;
+    }
+
+    /* The column header names the field, so the label is screen-reader only. */
+    .scanned-items__label {
+        position: absolute;
+        width: 0.1rem;
+        height: 0.1rem;
+        margin: -0.1rem;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
 }
 
 /* Camera */

@@ -87,8 +87,6 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
 
   return (
     <div className="barcode-scanner">
-      <h1 className="barcode-scanner__title">Barcode Scanner POC</h1>
-
       {isCameraOpen && (
         <CameraView
           onDecode={handleDecode}
@@ -116,11 +114,15 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
         onDelete={deleteItem}
       />
 
-      <h2 className="submission-preview__title">Submission preview</h2>
+      {import.meta.env.DEV && (
+        <>
+          <h2 className="submission-preview__title">Submission preview</h2>
 
-      <pre className="submission-preview__json">
-        {JSON.stringify(items, null, 2)}
-      </pre>
+          <pre className="submission-preview__json">
+            {JSON.stringify(toSubmissionRows(items), null, 2)}
+          </pre>
+        </>
+      )}
     </div>
   );
 }
