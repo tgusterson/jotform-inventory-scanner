@@ -16,40 +16,35 @@ describe("formatSubmission", () => {
     expect(formatSubmission([], columns)).toBe("");
   });
 
-  it("produces a single-line table with no newlines", () => {
-    const output = formatSubmission([item("A", "j", "1"), item("B")], columns);
+  it("writes one line per item in column order", () => {
+    expect(formatSubmission([item("A", "j", "1"), item("B", "k", "2")], columns)).toBe(
+      "A | Job number: j | Quantity: 1\nB | Job number: k | Quantity: 2",
+    );
+  });
 
+  it("keeps empty values as 'Label: '", () => {
+    expect(formatSubmission([item("A")], columns)).toBe("A | Job number:  | Quantity: ");
+  });
+
+  it("keeps colons in URLs and values", () => {
+    expect(formatSubmission([item("https://example.com:8080/a", "J: 1")], columns)).toBe(
+      "https://example.com:8080/a | Job number: J: 1 | Quantity: ",
+    );
+  });
+
+  it("sanitises separators and line breaks", () => {
+    const output = formatSubmission([item("A | B\r\nC", "x | y\nz ", " q")], columns);
+
+    expect(output).toBe("A / B C | Job number: x / y z | Quantity: q");
     expect(output).not.toMatch(/[\r\n]/);
-    expect(output.startsWith("<table><thead>")).toBe(true);
-    expect(output.endsWith("</tbody></table>")).toBe(true);
-  });
-
-  it("orders headers and cells like the columns, with empty cells for empty values", () => {
-    expect(formatSubmission([item("A", "j", "")], columns)).toBe(
-      "<table><thead><tr><th>Code</th><th>Job number</th><th>Quantity</th></tr></thead>" +
-        "<tbody><tr><td>A</td><td>j</td><td></td></tr></tbody></table>",
-    );
-  });
-
-  it("escapes codes, values and labels", () => {
-    const evil = `<script>alert(1)</script> & "x" 'y'`;
-    const output = formatSubmission(
-      [item(evil, evil)],
-      [{ key: "job", label: "<b>Job</b>", type: "text" }],
-    );
-
-    expect(output).not.toContain("<script>");
-    expect(output).not.toContain("<b>");
-    expect(output).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;x&quot; &#39;y&#39;");
   });
 });
 
 describe("parseSubmission", () => {
-  it("round-trips codes and values, including special characters", () => {
-    const evil = `<script>alert(1)</script> & "x"`;
+  it("round-trips codes and values, including colons", () => {
     const items = [
-      item(evil, "J: 1", "3"),
-      item("https://example.com:8080/a?b=c&d=e", "", ""),
+      item("https://example.com:8080/path?a=b", "J: 1", "3"),
+      item("Part: 42", "", ""),
     ];
 
     const { rows, unmatched } = parseSubmission(formatSubmission(items, columns), columns);
@@ -58,51 +53,55 @@ describe("parseSubmission", () => {
     expect(rows).toEqual(items.map(({ code, values }) => ({ code, values })));
   });
 
-  it("matches headers case-insensitively", () => {
-    const html =
-      "<table><thead><tr><th>Code</th><th>JOB NUMBER</th><th>quantity</th></tr></thead>" +
-      "<tbody><tr><td>A</td><td>j</td><td>4</td></tr></tbody></table>";
+  it("accepts \\r\\n line endings and ignores blank lines", () => {
+    const text = "A | Job number: j | Quantity: 1\r\n\r\nB | Job number: k | Quantity: 2\r\n";
 
-    const { rows, unmatched } = parseSubmission(html, columns);
-
-    expect(unmatched).toEqual([]);
-    expect(rows).toEqual([{ code: "A", values: { job: "j", qty: "4" } }]);
+    expect(parseSubmission(text, columns).rows).toEqual([
+      { code: "A", values: { job: "j", qty: "1" } },
+      { code: "B", values: { job: "k", qty: "2" } },
+    ]);
   });
 
-  it("reports unmatched headers once and ignores their cells", () => {
-    const html =
-      "<table><thead><tr><th>Code</th><th>Colour</th><th>Job number</th><th>Colour</th></tr></thead>" +
-      "<tbody><tr><td>A</td><td>red</td><td>j</td><td>blue</td></tr></tbody></table>";
+  it("handles a trailing colon with no value", () => {
+    expect(parseSubmission("A | Job number: | Quantity:", columns).rows).toEqual([
+      { code: "A", values: { job: "", qty: "" } },
+    ]);
+  });
 
-    const { rows, unmatched } = parseSubmission(html, columns);
+  it("reports unmatched labels once and ignores their values", () => {
+    const text = "A | Colour: red | Job number: j\nB | Colour: blue";
+    const { rows, unmatched } = parseSubmission(text, columns);
 
     expect(unmatched).toEqual(["Colour"]);
-    expect(rows).toEqual([{ code: "A", values: { job: "j", qty: "" } }]);
+    expect(rows[0].values).toEqual({ job: "j", qty: "" });
   });
 
-  it("defaults configured columns missing from the table to an empty string", () => {
-    const html =
-      "<table><thead><tr><th>Code</th><th>Job number</th></tr></thead>" +
-      "<tbody><tr><td>A</td><td>j</td></tr></tbody></table>";
+  it("matches labels case-insensitively", () => {
+    const { rows, unmatched } = parseSubmission("A | JOB NUMBER: j | quantity: 4", columns);
 
-    expect(parseSubmission(html, columns).rows).toEqual([
+    expect(unmatched).toEqual([]);
+    expect(rows[0].values).toEqual({ job: "j", qty: "4" });
+  });
+
+  it("defaults missing columns to an empty string", () => {
+    expect(parseSubmission("A | Job number: j", columns).rows).toEqual([
       { code: "A", values: { job: "j", qty: "" } },
     ]);
   });
 
-  it("skips rows with an empty code", () => {
-    const html =
-      "<table><thead><tr><th>Code</th><th>Job number</th></tr></thead>" +
-      "<tbody><tr><td> </td><td>j</td></tr></tbody></table>";
-
-    expect(parseSubmission(html, columns).rows).toEqual([]);
+  it("skips lines with an empty code", () => {
+    expect(parseSubmission(" | Job number: j", columns).rows).toEqual([]);
+    expect(parseSubmission("", columns)).toEqual({ rows: [], unmatched: [] });
   });
 
-  it("returns no rows for non-table input", () => {
-    expect(parseSubmission("", columns)).toEqual({ rows: [], unmatched: [] });
-    expect(parseSubmission("1. A\n   Job number: j", columns)).toEqual({
-      rows: [],
-      unmatched: [],
+  it("still parses a legacy HTML table", () => {
+    const html =
+      "<table><thead><tr><th>Code</th><th>Job number</th><th>Colour</th></tr></thead>" +
+      "<tbody><tr><td>A &amp; B</td><td>j</td><td>red</td></tr></tbody></table>";
+
+    expect(parseSubmission(html, columns)).toEqual({
+      rows: [{ code: "A & B", values: { job: "j", qty: "" } }],
+      unmatched: ["Colour"],
     });
   });
 });

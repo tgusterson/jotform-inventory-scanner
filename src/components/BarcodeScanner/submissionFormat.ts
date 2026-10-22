@@ -5,47 +5,93 @@ export type ParsedSubmission = {
     unmatched: string[];
 };
 
-const HTML_ESCAPES: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-};
+const SEPARATOR = " | ";
 
-function escapeHtml(text: string): string {
-    return text.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character]);
+// Keeps the separator and line breaks from appearing inside a code or value.
+function sanitise(text: string): string {
+    return text
+        .replace(/\r\n|\n|\r/g, " ")
+        .split(SEPARATOR)
+        .join(" / ")
+        .trim();
 }
 
 export function formatSubmission(
     items: ScannedItem[],
     columns: ColumnConfig[],
 ): string {
-    if (items.length === 0) {
-        return "";
-    }
-
-    const headerCells = ["Code", ...columns.map((column) => column.label)]
-        .map((label) => `<th>${escapeHtml(label)}</th>`)
-        .join("");
-
-    const bodyRows = items
-        .map((item) => {
-            const cells = [
-                item.code,
-                ...columns.map((column) => item.values[column.key] ?? ""),
-            ]
-                .map((text) => `<td>${escapeHtml(text)}</td>`)
-                .join("");
-
-            return `<tr>${cells}</tr>`;
-        })
-        .join("");
-
-    return `<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+    return items
+        .map((item) =>
+            [
+                sanitise(item.code),
+                ...columns.map(
+                    (column) =>
+                        `${column.label}: ${sanitise(item.values[column.key] ?? "")}`,
+                ),
+            ].join(SEPARATOR),
+        )
+        .join("\n");
 }
 
 export function parseSubmission(
+    text: string,
+    columns: ColumnConfig[],
+): ParsedSubmission {
+    // Submissions made during the HTML table experiment.
+    if (text.trimStart().startsWith("<table")) {
+        return parseHtmlSubmission(text, columns);
+    }
+
+    const rows: ParsedSubmission["rows"] = [];
+    const unmatched: string[] = [];
+
+    for (const line of text.split(/\r\n|\n/)) {
+        if (line.trim() === "") {
+            continue;
+        }
+
+        const [rawCode, ...parts] = line.split(SEPARATOR);
+        const code = rawCode.trim();
+
+        if (!code) {
+            continue;
+        }
+
+        const values = Object.fromEntries(columns.map((column) => [column.key, ""]));
+
+        for (const rawPart of parts) {
+            const part = rawPart.trim();
+            const separatorIndex = part.indexOf(": ");
+            let label: string;
+            let value: string;
+
+            if (separatorIndex !== -1) {
+                label = part.slice(0, separatorIndex);
+                value = part.slice(separatorIndex + 2);
+            } else if (part.endsWith(":")) {
+                label = part.slice(0, -1);
+                value = "";
+            } else {
+                continue;
+            }
+
+            label = label.trim();
+
+            const column = findColumn(columns, label);
+
+            if (column) {
+                values[column.key] = value.trim();
+            } else if (!unmatched.includes(label)) {
+                unmatched.push(label);
+            }
+        }
+
+        rows.push({ code, values });
+    }
+
+    return { rows, unmatched };
+}
+function parseHtmlSubmission(
     text: string,
     columns: ColumnConfig[],
 ): ParsedSubmission {

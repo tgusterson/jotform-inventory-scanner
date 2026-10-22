@@ -73,6 +73,20 @@ export function BarcodeScanner({
     });
   }, []);
 
+  // Keep Jotform's stored value in sync so edits are saved even without a submit.
+  useEffect(() => {
+    const jotform = getJotform();
+
+    if (!jotform?.sendData) {
+      return;
+    }
+
+    const value = formatSubmission(items, columns);
+
+    log("sendData", value);
+    jotform.sendData({ value });
+  }, [items, columns]);
+
   useEffect(() => {
     const jotform = getJotform();
 
@@ -156,12 +170,6 @@ export function BarcodeScanner({
           <pre className="bsit-submission-preview__json">
             {formatSubmission(items, columns)}
           </pre>
-
-          {/* Safe: formatSubmission escapes every code, value and label. */}
-          <div
-            className="bsit-submission-preview__rendered"
-            dangerouslySetInnerHTML={{ __html: formatSubmission(items, columns) }}
-          />
         </div>
       )}
     </div>

@@ -7,6 +7,7 @@ type JotformCustomWidget = {
     subscribe(event: "ready" | "submit", callback: (data?: unknown) => void): void;
     getWidgetSetting(name: string): string | undefined;
     sendSubmit(message: JotformSubmitMessage): void;
+    sendData?(data: { value: string }): void;
     requestFrameResize(size: { width?: number; height?: number }): void;
 };
 
