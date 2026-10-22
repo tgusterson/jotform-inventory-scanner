@@ -4,7 +4,8 @@ import { CameraView } from "./CameraView";
 import { ScannerControls } from "./ScannerControls";
 import { ScannedItemsTable } from "./ScannedItemsTable";
 import type { ColumnConfig } from "./types";
-import { itemsReducer, toSubmissionRows } from "./itemsReducer";
+import { itemsReducer } from "./itemsReducer";
+import { formatSubmission } from "./submissionFormat";
 import { getJotform } from "./jotform";
 
 type BarcodeScannerProps = {
@@ -16,9 +17,14 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [error, setError] = useState("");
   const itemsRef = useRef(items);
+  const columnsRef = useRef(columns);
   const hasSubscribedRef = useRef(false);
 
   itemsRef.current = items;
+
+  useEffect(() => {
+    columnsRef.current = columns;
+  }, [columns]);
 
   useEffect(() => {
     const jotform = getJotform();
@@ -31,10 +37,10 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
     hasSubscribedRef.current = true;
 
     jotform.subscribe("submit", () => {
-      const rows = toSubmissionRows(itemsRef.current);
+      const value = formatSubmission(itemsRef.current, columnsRef.current);
 
       // TODO: replace the placeholder valid flag once validation is added.
-      jotform.sendSubmit({ valid: true, value: JSON.stringify(rows) });
+      jotform.sendSubmit({ valid: true, value });
     });
   }, []);
 
@@ -119,7 +125,7 @@ export function BarcodeScanner({ columns }: BarcodeScannerProps) {
           <h2 className="bsit-submission-preview__title">Submission preview</h2>
 
           <pre className="bsit-submission-preview__json">
-            {JSON.stringify(toSubmissionRows(items), null, 2)}
+            {formatSubmission(items, columns)}
           </pre>
         </div>
       )}
