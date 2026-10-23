@@ -154,7 +154,14 @@
         .bsit-scanned-items__header {
             text-align: left;
             font-size: var(--bsit-font-size-small);
-            overflow-wrap: anywhere;
+            overflow-wrap: break-word;
+        }
+
+        /* The auto track must size to its content, so no min-width: 0 and no mid-word wrapping. */
+        .bsit-scanned-items__header--action,
+        .bsit-scanned-items__cell--action {
+            min-width: auto;
+            white-space: nowrap;
         }
 
         .bsit-scanned-items__error {
