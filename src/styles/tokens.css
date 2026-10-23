@@ -39,5 +39,11 @@
         /* Shape and sizing */
         --bsit-radius: 0.8rem;
         --bsit-input-height: 4.4rem;
+
+        /* Minimum column widths in the table layout (600px and wider). The table scrolls sideways if they don't fit. */
+        --bsit-col-code: 14rem;
+        --bsit-col-narrow: 9rem;
+        --bsit-col-normal: 16rem;
+        --bsit-col-wide: 28rem;
     }
 }

@@ -37,6 +37,7 @@ Options (`name=value`; the value is everything after the first `=`, trimmed):
 | `min=`, `max=` | Number limits. Only valid on number columns, and `min` must not exceed `max`. |
 | `pattern=` | Regular expression the value must match, written as is. |
 | `message=` | Text shown when the value doesn't match the pattern. |
+| `width=` | Column width in the table layout (600px and wider): `narrow`, `normal` or `wide` (not case-sensitive). Number columns default to `narrow`, text columns to `normal`. Anything else is reported and the default is used. |
 
 The label comes first and is required. It is also used to build the column key.
 
@@ -132,8 +133,10 @@ Defined on `:root` in `src/styles/tokens.css`.
 | `--bsit-space-1` to `--bsit-space-6` | `0.4rem`, `0.8rem`, `1.2rem`, `1.6rem`, `2rem`, `2.4rem` |
 | `--bsit-radius` | `0.8rem` |
 | `--bsit-input-height` | `4.4rem` |
+| `--bsit-col-code` | `14rem` (minimum width of the Code column) |
+| `--bsit-col-narrow`, `--bsit-col-normal`, `--bsit-col-wide` | `9rem`, `16rem`, `28rem` (minimum widths for `width=narrow`, `normal`, `wide`) |
 
-`1rem` is 10px inside the widget (the root font size is 62.5%). The layout switches from cards to a table at a viewport width of 600px; this breakpoint can't be changed with a token.
+`1rem` is 10px inside the widget (the root font size is 62.5%). The layout switches from cards to a table at a viewport width of 600px; this breakpoint can't be changed with a token. In the table layout, each column grows from its minimum width (Code `1.2fr`, narrow `0.6fr`, normal `1fr`, wide `2fr`); if there are too many columns to fit, the table scrolls sideways instead of squashing them.
 
 ### Public classes
 

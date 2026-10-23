@@ -1,20 +1,21 @@
 import { uniqueKey } from "./columnKey";
 import { DEFAULT_COLUMNS } from "./columns";
 import { compilePattern } from "./pattern";
-import type { ColumnConfig, WidgetConfig } from "./types";
+import type { ColumnConfig, ColumnWidth, WidgetConfig } from "./types";
 
 type ParseResult = { config: WidgetConfig; errors: string[] };
 
-type OptionName = "default" | "min" | "max" | "pattern" | "message";
+type OptionName = "default" | "min" | "max" | "pattern" | "message" | "width";
 
 const FORMAT_HINT = "Use one column per line, e.g. Quantity; number; default=1";
 
 // Split at ";" only when a known flag or option follows, so patterns and
 // messages can contain ";".
 const PART_SEPARATOR =
-    /;\s*(?=(?:number|text|required)\s*(?:;|$)|(?:default|min|max|pattern|message)\s*=)/i;
+    /;\s*(?=(?:number|text|required)\s*(?:;|$)|(?:default|min|max|pattern|message|width)\s*=)/i;
 const FLAG = /^(number|text|required)\s*(?:;\s*(.*))?$/is;
-const OPTION = /^(default|min|max|pattern|message)\s*=(.*)$/is;
+const OPTION = /^(default|min|max|pattern|message|width)\s*=(.*)$/is;
+const WIDTHS: readonly string[] = ["narrow", "normal", "wide"];
 
 function defaults(): WidgetConfig {
     return { columns: DEFAULT_COLUMNS };
@@ -131,6 +132,16 @@ function parseLine(
     }
 
     applyRange(options, column, fail);
+
+    if (options.width !== undefined) {
+        const width = options.width.toLowerCase();
+
+        if (WIDTHS.includes(width)) {
+            column.width = width as ColumnWidth;
+        } else {
+            fail("width must be narrow, normal or wide");
+        }
+    }
 
     return column;
 }

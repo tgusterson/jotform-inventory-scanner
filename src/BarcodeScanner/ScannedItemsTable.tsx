@@ -1,5 +1,6 @@
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import "./ScannedItemsTable.css";
+import { buildGridColumns } from "../lib/gridColumns";
 import type { ColumnConfig, ScannedItem } from "../lib/types";
 import type { ItemErrors } from "../lib/validation";
 
@@ -23,6 +24,13 @@ export function ScannedItemsTable({
     onDelete,
 }: ScannedItemsTableProps) {
     const baseId = useId();
+    const tableRef = useRef<HTMLDivElement>(null);
+    const hasItems = items.length > 0;
+
+    // Column widths are computed from the config and handed to the CSS as a custom property.
+    useLayoutEffect(() => {
+        tableRef.current?.style.setProperty("--bsit-grid-columns", buildGridColumns(columns));
+    }, [columns, hasItems]);
     // UI-only state: ids of rows whose full code is showing.
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     // UI-only state: "itemId:columnKey" of fields the user has left.
@@ -54,7 +62,12 @@ export function ScannedItemsTable({
 
     return (
         <form noValidate onSubmit={(event) => event.preventDefault()}>
-        <div className="bsit-scanned-items" role="table" aria-label="Scanned items">
+        <div
+            ref={tableRef}
+            className="bsit-scanned-items"
+            role="table"
+            aria-label="Scanned items"
+        >
             <div className="bsit-scanned-items__head" role="rowgroup">
                 <div className="bsit-scanned-items__row bsit-scanned-items__row--header" role="row">
                     <div

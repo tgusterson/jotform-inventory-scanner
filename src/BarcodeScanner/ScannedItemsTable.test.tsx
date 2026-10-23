@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScannedItemsTable } from "./ScannedItemsTable";
+import { buildGridColumns } from "../lib/gridColumns";
 import type { ColumnConfig, ScannedItem } from "../lib/types";
 
 const columns: ColumnConfig[] = [
@@ -124,6 +125,47 @@ describe("ScannedItemsTable", () => {
 
       expect(cell).toHaveAttribute("data-expanded", "false");
     });
+  });
+});
+
+describe("ScannedItemsTable grid columns", () => {
+  function renderWith(cols: ColumnConfig[]) {
+    const props = {
+      items,
+      errors: {},
+      showAllErrors: false,
+      onValueChange: vi.fn(),
+      onDelete: vi.fn(),
+    };
+    const view = render(<ScannedItemsTable {...props} columns={cols} />);
+
+    return {
+      table: () => screen.getByRole("table"),
+      rerender: (next: ColumnConfig[]) =>
+        view.rerender(<ScannedItemsTable {...props} columns={next} />),
+    };
+  }
+
+  it("sets the grid template from the column widths", () => {
+    const { table } = renderWith([
+      { key: "q", label: "Q", type: "number" },
+      { key: "n", label: "N", type: "text", width: "wide" },
+    ]);
+
+    expect(table().style.getPropertyValue("--bsit-grid-columns")).toBe(
+      buildGridColumns([
+        { key: "q", label: "Q", type: "number" },
+        { key: "n", label: "N", type: "text", width: "wide" },
+      ]),
+    );
+  });
+
+  it("updates the grid template when the columns change", () => {
+    const { table, rerender } = renderWith([{ key: "q", label: "Q", type: "number" }]);
+
+    rerender([]);
+
+    expect(table().style.getPropertyValue("--bsit-grid-columns")).toBe(buildGridColumns([]));
   });
 });
 

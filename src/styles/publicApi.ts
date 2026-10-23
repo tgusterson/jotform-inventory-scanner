@@ -71,4 +71,8 @@ export const PUBLIC_TOKENS = [
   "--bsit-space-6",
   "--bsit-radius",
   "--bsit-input-height",
+  "--bsit-col-code",
+  "--bsit-col-narrow",
+  "--bsit-col-normal",
+  "--bsit-col-wide",
 ] as const;

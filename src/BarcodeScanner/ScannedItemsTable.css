@@ -1,4 +1,4 @@
-/* Cards below 600px, table-like layout from 600px (see tokens.css). */
+/* Cards below 600px, grid layout from 600px (see tokens.css). Grid tracks come from buildGridColumns(). */
 
 @layer bsit {
     .bsit-scanned-items {
@@ -113,14 +113,20 @@
     }
 
     @media (min-width: 600px) {
+        /* One grid for header and rows (rowgroups and rows use display: contents), so tracks line up. */
         .bsit-scanned-items {
-            display: table;
-            table-layout: fixed;
-            border-collapse: collapse;
+            display: grid;
+            grid-template-columns: var(--bsit-grid-columns);
+            overflow-x: auto;
         }
 
         .bsit-scanned-items__head,
-        .bsit-scanned-items__body {
+        .bsit-scanned-items__body,
+        .bsit-scanned-items__row {
+            display: contents;
+        }
+
+        .bsit-scanned-items__head {
             position: static;
             width: auto;
             height: auto;
@@ -130,16 +136,7 @@
             white-space: normal;
         }
 
-        .bsit-scanned-items__head {
-            display: table-header-group;
-        }
-
-        .bsit-scanned-items__body {
-            display: table-row-group;
-        }
-
         .bsit-scanned-items__row {
-            display: table-row;
             margin: 0;
             padding: 0;
             border: 0;
@@ -149,27 +146,19 @@
 
         .bsit-scanned-items__header,
         .bsit-scanned-items__cell {
-            display: table-cell;
+            min-width: 0;
             padding: var(--bsit-space-2);
             border-bottom: 1px solid var(--bsit-color-border);
-            vertical-align: top;
         }
 
         .bsit-scanned-items__header {
             text-align: left;
             font-size: var(--bsit-font-size-small);
+            overflow-wrap: anywhere;
         }
 
-        .bsit-scanned-items__header--code {
-            width: 35%;
-        }
-
-        .bsit-scanned-items__header--number {
-            width: 9rem;
-        }
-
-        .bsit-scanned-items__header--action {
-            width: 10rem;
+        .bsit-scanned-items__error {
+            overflow-wrap: anywhere;
         }
 
         /* The column header names the field, so the label is screen-reader only. */

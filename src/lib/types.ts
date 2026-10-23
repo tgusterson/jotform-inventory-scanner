@@ -1,5 +1,7 @@
 export type ColumnType = "text" | "number";
 
+export type ColumnWidth = "narrow" | "normal" | "wide";
+
 export type ColumnConfig = {
     key: string;
     label: string;
@@ -10,6 +12,7 @@ export type ColumnConfig = {
     message?: string;
     min?: number;
     max?: number;
+    width?: ColumnWidth;
 };
 
 export type WidgetConfig = {

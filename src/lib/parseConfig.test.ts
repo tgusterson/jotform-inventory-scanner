@@ -151,6 +151,37 @@ describe("parseConfig: columns", () => {
     expect(columns[0]).toEqual({ key: "a", label: "A", type: "text" });
   });
 
+  it("reads width case-insensitively and leaves it unset by default", () => {
+    const [a, b, c, d] = parse("A; width=Narrow\nB; WIDTH=normal\nC; number; width=WIDE\nD").columns;
+
+    expect([a.width, b.width, c.width]).toEqual(["narrow", "normal", "wide"]);
+    expect(d.width).toBeUndefined();
+  });
+
+  it("rejects an invalid width, including numbers, and keeps the column", () => {
+    for (const value of ["2", "huge", "", "wide wide"]) {
+      const { columns, errors } = parse(`Notes; required; width=${value}`);
+
+      expect(errors).toEqual(["Line 1 (Notes): width must be narrow, normal or wide"]);
+      expect(columns[0]).toMatchObject({ label: "Notes", required: true });
+      expect(columns[0].width).toBeUndefined();
+    }
+  });
+
+  it("reports width set more than once and keeps the last valid value", () => {
+    const { columns, errors } = parse("A; width=narrow; width=wide");
+
+    expect(columns[0].width).toBe("wide");
+    expect(errors).toEqual(["Line 1 (A): width is set more than once"]);
+  });
+
+  it("parses width in any position and next to other options", () => {
+    const { columns, errors } = parse("Q; width=wide; number; min=1; message=a; b");
+
+    expect(errors).toEqual([]);
+    expect(columns[0]).toMatchObject({ width: "wide", type: "number", min: 1, message: "a; b" });
+  });
+
   it("generates unique keys for duplicate labels", () => {
     expect(parse("Notes\nNotes\nNotes").columns.map((column) => column.key)).toEqual([
       "notes",
