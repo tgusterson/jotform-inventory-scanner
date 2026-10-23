@@ -3,6 +3,56 @@ import { DEFAULT_COLUMNS } from "./columns";
 import { parseConfig } from "./parseConfig";
 
 describe("parseConfig", () => {
+  describe("already-parsed input from Jotform", () => {
+    const columns = [
+      { label: "Job number", required: true, pattern: "\\d+" },
+      { label: "Qty", type: "number", default: 1, min: 1 },
+    ];
+
+    it("treats a parsed array the same as the equivalent JSON string", () => {
+      expect(parseConfig(columns)).toEqual(parseConfig(JSON.stringify(columns)));
+      expect(parseConfig(columns).errors).toEqual([]);
+    });
+
+    it("validates the columns of a parsed array", () => {
+      const { config, errors } = parseConfig([{ label: "A" }, { type: "number" }]);
+
+      expect(config.columns.map((column) => column.label)).toEqual(["A"]);
+      expect(errors).toEqual(["Column 2 is missing a label"]);
+    });
+
+    it("rejects a parsed object", () => {
+      const { config, errors } = parseConfig({ columns });
+
+      expect(errors).toEqual([
+        "Columns setting must be a JSON array",
+        "Using the default columns.",
+      ]);
+      expect(config.columns).toEqual(DEFAULT_COLUMNS);
+    });
+
+    it("gives the defaults for undefined and null", () => {
+      for (const input of [undefined, null]) {
+        const { config, errors } = parseConfig(input);
+
+        expect(errors).toEqual([]);
+        expect(config.columns).toEqual(DEFAULT_COLUMNS);
+      }
+    });
+
+    it("reports an unexpected format for numbers and booleans", () => {
+      for (const input of [5, true]) {
+        const { config, errors } = parseConfig(input);
+
+        expect(errors).toEqual([
+          "Columns setting has an unexpected format",
+          "Using the default columns.",
+        ]);
+        expect(config.columns).toEqual(DEFAULT_COLUMNS);
+      }
+    });
+  });
+
   it("returns defaults for blank text", () => {
     expect(parseConfig("")).toEqual({
       config: { columns: DEFAULT_COLUMNS },

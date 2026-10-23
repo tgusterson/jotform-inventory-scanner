@@ -52,9 +52,9 @@ export function bootstrap(
   jotform.subscribe("ready", (data?: unknown) => {
     log("ready data", data);
 
-    const setting = jotform.getWidgetSetting("columns") ?? "";
+    const setting = jotform.getWidgetSetting("columns");
 
-    log("columns setting", setting);
+    log("columns setting", setting, typeof setting);
 
     const { config, errors } = parseConfig(setting);
 

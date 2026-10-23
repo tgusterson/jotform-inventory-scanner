@@ -30,7 +30,35 @@ function isNumber(value: unknown): value is number {
     return typeof value === "number" && Number.isFinite(value);
 }
 
-export function parseConfig(text: string): ParseResult {
+function withDefaults(...errors: string[]): ParseResult {
+    return {
+        config: defaults(),
+        errors: [...errors, "Using the default columns."],
+    };
+}
+
+// Jotform may hand over an already-parsed array or object instead of text.
+export function parseConfig(input: unknown): ParseResult {
+    if (input === undefined || input === null) {
+        return { config: defaults(), errors: [] };
+    }
+
+    if (Array.isArray(input)) {
+        return parseColumnArray(input);
+    }
+
+    if (isRecord(input)) {
+        return withDefaults("Columns setting must be a JSON array");
+    }
+
+    if (typeof input !== "string") {
+        return withDefaults("Columns setting has an unexpected format");
+    }
+
+    return parseText(input);
+}
+
+function parseText(text: string): ParseResult {
     const trimmed = text.trim();
 
     if (!trimmed) {
@@ -38,13 +66,7 @@ export function parseConfig(text: string): ParseResult {
     }
 
     if (trimmed[0] === "{") {
-        return {
-            config: defaults(),
-            errors: [
-                "Columns setting must be a JSON array",
-                "Using the default columns.",
-            ],
-        };
+        return withDefaults("Columns setting must be a JSON array");
     }
 
     if (trimmed[0] !== "[") {
@@ -65,19 +87,15 @@ export function parseConfig(text: string): ParseResult {
     } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
 
-        return {
-            config: defaults(),
-            errors: [
-                `Columns setting is not valid JSON: ${reason}`,
-                "Using the default columns.",
-            ],
-        };
+        return withDefaults(`Columns setting is not valid JSON: ${reason}`);
     }
 
-    const errors: string[] = [];
     // A text starting with "[" that parses as JSON is always an array.
-    const rawColumns = json as unknown[];
+    return parseColumnArray(json as unknown[]);
+}
 
+function parseColumnArray(rawColumns: unknown[]): ParseResult {
+    const errors: string[] = [];
     const usedKeys = new Set<string>();
     const columns: ColumnConfig[] = [];
 

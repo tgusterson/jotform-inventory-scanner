@@ -9,7 +9,7 @@ const DEFAULT_CONFIG: WidgetConfig = { columns: DEFAULT_COLUMNS };
 vi.mock("./jotform", () => ({ getJotform: vi.fn() }));
 vi.mock("./debug", () => ({ log: vi.fn() }));
 
-function createFakeJotform(setting?: string) {
+function createFakeJotform(setting?: unknown) {
   let readyCallback: ((data?: unknown) => void) | undefined;
 
   return {
@@ -96,6 +96,27 @@ describe("bootstrap", () => {
 
     expect(config.columns.map((column: { label: string }) => column.label)).toEqual(["A"]);
     expect(errors).toEqual(["Column 2 is missing a label"]);
+  });
+
+  it("accepts a setting that Jotform already parsed into an array", () => {
+    const { api, fireReady } = createFakeJotform([
+      { label: "Job number", required: true },
+      { label: "Qty", type: "number", min: 1 },
+    ]);
+    vi.mocked(getJotform).mockReturnValue(api);
+    const render = vi.fn();
+
+    bootstrap(render);
+    fireReady();
+
+    const [config, errors] = render.mock.calls[0];
+
+    expect(errors).toEqual([]);
+    expect(config.columns.map((column: { label: string }) => column.label)).toEqual([
+      "Job number",
+      "Qty",
+    ]);
+    expect(config.columns[0].required).toBe(true);
   });
 
   it("reports invalid JSON and falls back to the default columns", () => {
