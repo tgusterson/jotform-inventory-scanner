@@ -7,56 +7,58 @@ Built with React, TypeScript and Vite, and hosted on GitHub Pages.
 ## Using the widget in Jotform
 
 1. Host the build (GitHub Pages) and add a **Custom Widget** to your form using the widget URL.
-2. In the widget settings, set the `columns` setting. It accepts two formats, chosen by the first character: text starting with `[` is read as JSON (text starting with `{` is reported as an error), anything else uses the line format. Validation rules are only available in the JSON format.
+2. In the widget settings, set the `columns` setting: one column per line, written as a label followed by optional `;`-separated flags and options (see below). Text that looks like JSON (starts with `[` or `{`) is not supported and is reported as an error.
 
    If `columns` is empty, the default columns in `src/lib/columns.ts` are used: a single `Quantity` number column, default `1`, minimum `1`.
 
-### Line format
+### Columns setting format
 
-One column per line:
+One column per line; blank lines are ignored. Each line is the column label, then any flags and options, separated by `;`, in any order:
 
-| Line | Meaning |
-| --- | --- |
-| `Label` | Text column |
-| `Label=default` | Text column with a default value |
-| `Label:number` | Number column |
-| `Label:number=1` | Number column with a default value |
-
-### JSON format
-
-A JSON array of column objects (text starting with `[`). An object (`{`) is not supported and is reported as an error.
-
-```json
-[{ "label": "Job number" }, { "label": "Quantity", "type": "number", "min": 1 }]
+```
+Job number; required; pattern=[A-Za-z]{2}\d{7}; message=2 letters then 7 digits
+Quantity; number; required; default=1; min=1; max=999
+Notes
 ```
 
-Column fields:
+Flags (names are not case-sensitive):
 
-| Field | Meaning |
+| Flag | Meaning |
 | --- | --- |
-| `label` | Required. Column heading; also used to build the column key. |
-| `type` | `"text"` (default) or `"number"`. |
-| `default` | Default value, a string or a number. |
-| `required` | `true` if the column must be filled in. |
-| `pattern` | Regular expression the value must match. |
-| `message` | Text shown when the value doesn't match the pattern. |
-| `min`, `max` | Number limits. Only valid on number columns, and `min` must not exceed `max`. |
+| `number` | Number column. |
+| `text` | Text column (the default). |
+| `required` | The column must be filled in. |
 
-Patterns always match the **whole** value, so `\d{7}` rejects `12345678`. You can include `^` and `$` or leave them out. In JSON, backslashes must be escaped: write `\\d`, not `\d`.
+Options (`name=value`; the value is everything after the first `=`, trimmed):
+
+| Option | Meaning |
+| --- | --- |
+| `default=` | Default value for new rows. |
+| `min=`, `max=` | Number limits. Only valid on number columns, and `min` must not exceed `max`. |
+| `pattern=` | Regular expression the value must match, written as is. |
+| `message=` | Text shown when the value doesn't match the pattern. |
+
+The label comes first and is required. It is also used to build the column key.
+
+A `;` only separates parts when a known flag or option follows it, so `pattern=` and `message=` values can contain `;` (and `=`). Setting an option twice keeps the last value and reports it.
+
+Patterns always match the **whole** value, so `\d{7}` rejects `12345678`. You can include `^` and `$` or leave them out. Write backslashes once: `\d`, not `\\d`.
+
+The older `Label`, `Label=default`, `Label:number` and `Label:number=1` syntax still works on lines without a `;`.
 
 Examples:
 
-| Purpose | Setting |
+| Purpose | Line |
 | --- | --- |
-| Job number (2 letters + 7 digits) | `{ "label": "Job number", "pattern": "^[A-Za-z]{2}\\d{7}$" }` |
-| Digits only | `{ "label": "Batch", "pattern": "\\d+" }` |
-| Whole number quantity | `{ "label": "Quantity", "type": "number", "min": 1 }` |
+| Job number (2 letters + 7 digits) | `Job number; pattern=^[A-Za-z]{2}\d{7}$` |
+| Digits only | `Batch; pattern=\d+` |
+| Whole number quantity | `Quantity; number; min=1; pattern=\d+` |
 
-Problems in the setting (invalid JSON, a missing label, an invalid pattern, unknown properties) are shown in a banner at the top of the widget, including in the live form. Invalid parts are dropped and the rest of the setting still works; if no valid columns remain, the default columns are used.
+Problems in the setting (a missing label, an unknown option, an invalid number or pattern, a repeated option) are shown in a banner at the top of the widget, including in the live form, with the line number. A line with problems still produces a column with its valid options; if no valid columns remain, the default columns are used.
 
 ### Validation
 
-Column rules (`required`, `type: "number"`, `min`, `max`, `pattern`) are checked by the widget itself, not by the browser, so there are no browser popups. Only the configured columns are validated; the scanned code never is.
+Column rules (`required`, `number`, `min`, `max`, `pattern`) are checked by the widget itself, not by the browser, so there are no browser popups. Only the configured columns are validated; the scanned code never is.
 
 How a value is checked (the first problem found is shown):
 

@@ -85,7 +85,7 @@ describe("bootstrap", () => {
   });
 
   it("passes config errors to render and keeps working with the valid columns", () => {
-    const { api, fireReady } = createFakeJotform('[{"label":"A"},{"type":"number"}]');
+    const { api, fireReady } = createFakeJotform("A\n; required\nB; number; min=x");
     vi.mocked(getJotform).mockReturnValue(api);
     const render = vi.fn();
 
@@ -94,33 +94,12 @@ describe("bootstrap", () => {
 
     const [config, errors] = render.mock.calls[0];
 
-    expect(config.columns.map((column: { label: string }) => column.label)).toEqual(["A"]);
-    expect(errors).toEqual(["Column 2 is missing a label"]);
+    expect(config.columns.map((column: { label: string }) => column.label)).toEqual(["A", "B"]);
+    expect(errors).toEqual(["Line 2 is missing a label", "Line 3 (B): min must be a number"]);
   });
 
-  it("accepts a setting that Jotform already parsed into an array", () => {
-    const { api, fireReady } = createFakeJotform([
-      { label: "Job number", required: true },
-      { label: "Qty", type: "number", min: 1 },
-    ]);
-    vi.mocked(getJotform).mockReturnValue(api);
-    const render = vi.fn();
-
-    bootstrap(render);
-    fireReady();
-
-    const [config, errors] = render.mock.calls[0];
-
-    expect(errors).toEqual([]);
-    expect(config.columns.map((column: { label: string }) => column.label)).toEqual([
-      "Job number",
-      "Qty",
-    ]);
-    expect(config.columns[0].required).toBe(true);
-  });
-
-  it("reports invalid JSON and falls back to the default columns", () => {
-    const { api, fireReady } = createFakeJotform("[oops");
+  it("reports a non-string setting and falls back to the default columns", () => {
+    const { api, fireReady } = createFakeJotform([{ label: "A" }]);
     vi.mocked(getJotform).mockReturnValue(api);
     const render = vi.fn();
 
@@ -130,7 +109,21 @@ describe("bootstrap", () => {
     const [config, errors] = render.mock.calls[0];
 
     expect(config).toEqual(DEFAULT_CONFIG);
-    expect(errors[0]).toMatch(/not valid JSON/);
+    expect(errors[0]).toBe("Columns setting has an unexpected format");
+  });
+
+  it("reports JSON-looking text such as Jotform's [object Object]", () => {
+    const { api, fireReady } = createFakeJotform("[object Object]");
+    vi.mocked(getJotform).mockReturnValue(api);
+    const render = vi.fn();
+
+    bootstrap(render);
+    fireReady();
+
+    const [config, errors] = render.mock.calls[0];
+
+    expect(config).toEqual(DEFAULT_CONFIG);
+    expect(errors[0]).toMatch(/^Use one column per line/);
   });
 
   it("uses default columns when the setting is empty or missing", () => {
