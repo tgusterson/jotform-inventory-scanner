@@ -5,6 +5,15 @@ export type ColumnConfig = {
     label: string;
     type: ColumnType;
     defaultValue?: string;
+    required?: boolean;
+    pattern?: string;
+    message?: string;
+    min?: number;
+    max?: number;
+};
+
+export type WidgetConfig = {
+    columns: ColumnConfig[];
 };
 
 export type ScannedItem = {
