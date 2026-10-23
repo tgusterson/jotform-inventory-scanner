@@ -1,10 +1,12 @@
 import { DEFAULT_COLUMNS } from "./columns";
 import { log } from "./debug";
 import { getJotform } from "./jotform";
-import { parseColumns } from "./parseColumns";
-import type { ColumnConfig } from "./types";
+import { parseConfig } from "./parseConfig";
+import type { WidgetConfig } from "./types";
 
 export const READY_TIMEOUT_MS = 3000;
+
+const DEFAULT_CONFIG: WidgetConfig = { columns: DEFAULT_COLUMNS };
 
 export function getSavedValue(data: unknown): string {
   if (typeof data === "object" && data !== null && "value" in data) {
@@ -18,23 +20,31 @@ export function getSavedValue(data: unknown): string {
 
 /** Calls render exactly once, after Jotform is ready or immediately when standalone. */
 export function bootstrap(
-  renderApp: (columns: ColumnConfig[], initialValue: string) => void,
+  renderApp: (
+    config: WidgetConfig,
+    configErrors: string[],
+    initialValue: string,
+  ) => void,
 ) {
   let hasRendered = false;
 
-  function render(columns: ColumnConfig[], initialValue: string) {
+  function render(
+    config: WidgetConfig,
+    configErrors: string[],
+    initialValue: string,
+  ) {
     if (hasRendered) {
       return;
     }
 
     hasRendered = true;
-    renderApp(columns, initialValue);
+    renderApp(config, configErrors, initialValue);
   }
 
   const jotform = getJotform();
 
   if (!jotform) {
-    render(DEFAULT_COLUMNS, "");
+    render(DEFAULT_CONFIG, [], "");
 
     return;
   }
@@ -46,14 +56,17 @@ export function bootstrap(
 
     log("columns setting", setting);
 
-    const columns = parseColumns(setting);
+    const { config, errors } = parseConfig(setting);
 
-    render(
-      columns.length > 0 ? columns : DEFAULT_COLUMNS,
-      getSavedValue(data),
-    );
+    log("config", config);
+
+    if (errors.length > 0) {
+      log("config errors", errors);
+    }
+
+    render(config, errors, getSavedValue(data));
   });
 
   // Fallback so the widget never stays blank if "ready" doesn't arrive.
-  window.setTimeout(() => render(DEFAULT_COLUMNS, ""), READY_TIMEOUT_MS);
+  window.setTimeout(() => render(DEFAULT_CONFIG, [], ""), READY_TIMEOUT_MS);
 }

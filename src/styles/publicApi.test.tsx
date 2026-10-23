@@ -41,7 +41,10 @@ describe("public styling contract", () => {
     const seen = new Set<string>();
     const longCode = "https://example.com/" + "a".repeat(60);
 
-    render(<BarcodeScanner columns={DEFAULT_COLUMNS} />);
+    render(<BarcodeScanner
+        config={{ columns: [{ key: "notes", label: "Notes", type: "text", required: true }, ...DEFAULT_COLUMNS] }}
+        configErrors={["Example problem"]}
+      />);
 
     // Empty state with the camera open.
     await user.click(screen.getByRole("button", { name: /Open camera/ }));
@@ -54,6 +57,11 @@ describe("public styling contract", () => {
         boundingBox: { x: 0, y: 0, width: 1, height: 1 },
       });
     });
+    collectClasses(seen);
+
+    // A field error appears once the required field is left empty.
+    await user.click(screen.getByLabelText(/Notes/));
+    await user.tab();
     collectClasses(seen);
 
     // Error message state.

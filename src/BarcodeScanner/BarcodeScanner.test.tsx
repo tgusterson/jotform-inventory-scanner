@@ -4,7 +4,7 @@ import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { getJotform } from "../lib/jotform";
-import type { ColumnConfig } from "../lib/types";
+import type { ColumnConfig, WidgetConfig } from "../lib/types";
 
 vi.mock("../lib/jotform", () => ({ getJotform: vi.fn() }));
 vi.mock("../lib/debug", () => ({ log: vi.fn() }));
@@ -27,6 +27,7 @@ const columns: ColumnConfig[] = [
   { key: "job_number", label: "Job number", type: "text" },
   { key: "qty", label: "Qty", type: "number" },
 ];
+const config: WidgetConfig = { columns };
 
 function createFakeJotform(withSendData = true) {
   let submitCallback: (() => void) | undefined;
@@ -63,7 +64,7 @@ describe("BarcodeScanner", () => {
   it("works standalone without Jotform", async () => {
     const user = userEvent.setup();
 
-    render(<BarcodeScanner columns={columns} />);
+    render(<BarcodeScanner config={config} />);
     await scanOne(user);
 
     expect(screen.getByTitle("ABC-1")).toBeInTheDocument();
@@ -72,7 +73,7 @@ describe("BarcodeScanner", () => {
   it("shows a camera error and closes the camera", async () => {
     const user = userEvent.setup();
 
-    render(<BarcodeScanner columns={columns} />);
+    render(<BarcodeScanner config={config} />);
     await user.click(screen.getByRole("button", { name: /Open camera/ }));
     await user.click(screen.getByRole("button", { name: "Fake error" }));
 
@@ -87,11 +88,11 @@ describe("BarcodeScanner", () => {
       { Code: "RESTORED-1", "Job number": "J7", Qty: "3" },
     ]);
 
-    render(<BarcodeScanner columns={columns} initialValue={initialValue} />);
+    render(<BarcodeScanner config={config} initialValue={initialValue} />);
 
     expect(screen.getByTitle("RESTORED-1")).toBeInTheDocument();
     expect(screen.getByLabelText(/Job number.*RESTORED-1/)).toHaveValue("J7");
-    expect(screen.getByLabelText(/Qty.*RESTORED-1/)).toHaveValue(3);
+    expect(screen.getByLabelText(/Qty.*RESTORED-1/)).toHaveValue("3");
   });
 
   describe("inside Jotform", () => {
@@ -101,7 +102,7 @@ describe("BarcodeScanner", () => {
 
       render(
         <StrictMode>
-          <BarcodeScanner columns={columns} />
+          <BarcodeScanner config={config} />
         </StrictMode>,
       );
 
@@ -117,7 +118,7 @@ describe("BarcodeScanner", () => {
       const { api, submit } = createFakeJotform();
       vi.mocked(getJotform).mockReturnValue(api);
 
-      render(<BarcodeScanner columns={columns} />);
+      render(<BarcodeScanner config={config} />);
       await scanOne(user);
       await user.type(screen.getByLabelText(/Job number.*ABC-1/), "J9");
 
@@ -134,12 +135,81 @@ describe("BarcodeScanner", () => {
       expect(message.value).not.toContain("id");
     });
 
+    it("sends valid: false and shows every error when a rule fails", async () => {
+      const user = userEvent.setup();
+      const { api, submit } = createFakeJotform();
+      vi.mocked(getJotform).mockReturnValue(api);
+      const required: WidgetConfig = {
+        columns: [{ key: "job_number", label: "Job number", type: "text", required: true }],
+      };
+
+      render(<BarcodeScanner config={required} />);
+      await scanOne(user);
+
+      expect(screen.queryByText("Job number is required")).not.toBeInTheDocument();
+
+      act(() => submit());
+
+      expect(api.sendSubmit.mock.calls[0][0].valid).toBe(false);
+      expect(screen.getByText("Job number is required")).toBeInTheDocument();
+    });
+
+    it("validates the latest edits on submit (not stale values)", async () => {
+      const user = userEvent.setup();
+      const { api, submit } = createFakeJotform();
+      vi.mocked(getJotform).mockReturnValue(api);
+      const required: WidgetConfig = {
+        columns: [{ key: "job_number", label: "Job number", type: "text", required: true }],
+      };
+
+      render(<BarcodeScanner config={required} />);
+      await scanOne(user);
+      await user.type(screen.getByLabelText(/Job number.*ABC-1/), "J9");
+
+      act(() => submit());
+
+      expect(api.sendSubmit.mock.calls[0][0].valid).toBe(true);
+      expect(screen.queryByText("Job number is required")).not.toBeInTheDocument();
+    });
+
+    it("sends valid: false and alerts when submitting with no items", () => {
+      const { api, submit } = createFakeJotform();
+      vi.mocked(getJotform).mockReturnValue(api);
+
+      render(<BarcodeScanner config={config} />);
+
+      expect(screen.queryByText("Scan at least one item")).not.toBeInTheDocument();
+
+      act(() => submit());
+
+      expect(api.sendSubmit.mock.calls[0][0].valid).toBe(false);
+      expect(screen.getByRole("alert")).toHaveTextContent("Scan at least one item");
+    });
+
+    it("requests a frame resize when errors appear after submit", async () => {
+      const user = userEvent.setup();
+      const { api, submit } = createFakeJotform();
+      vi.mocked(getJotform).mockReturnValue(api);
+      const required: WidgetConfig = {
+        columns: [{ key: "job_number", label: "Job number", type: "text", required: true }],
+      };
+
+      render(<BarcodeScanner config={required} />);
+      await scanOne(user);
+      await vi.waitFor(() => expect(api.requestFrameResize).toHaveBeenCalled());
+      api.requestFrameResize.mockClear();
+
+      act(() => submit());
+
+      await vi.waitFor(() => expect(api.requestFrameResize).toHaveBeenCalled());
+    });
+
     it("syncs the value with sendData whenever items change", async () => {
       const user = userEvent.setup();
       const { api } = createFakeJotform();
       vi.mocked(getJotform).mockReturnValue(api);
 
-      render(<BarcodeScanner columns={columns} />);
+      render(<BarcodeScanner config={config} />);
 
       expect(api.sendData).toHaveBeenLastCalledWith({ value: "" });
 
@@ -161,7 +231,7 @@ describe("BarcodeScanner", () => {
       const { api } = createFakeJotform(false);
       vi.mocked(getJotform).mockReturnValue(api);
 
-      render(<BarcodeScanner columns={columns} />);
+      render(<BarcodeScanner config={config} />);
 
       await expect(scanOne(user)).resolves.not.toThrow();
     });
@@ -171,7 +241,7 @@ describe("BarcodeScanner", () => {
       const { api } = createFakeJotform();
       vi.mocked(getJotform).mockReturnValue(api);
 
-      render(<BarcodeScanner columns={columns} />);
+      render(<BarcodeScanner config={config} />);
       await scanOne(user);
 
       await vi.waitFor(() => {
@@ -180,6 +250,31 @@ describe("BarcodeScanner", () => {
         });
       });
     });
+  });
+
+  it("shows no validation errors before submit is pressed", async () => {
+    const user = userEvent.setup();
+    const required: WidgetConfig = {
+      columns: [{ key: "job_number", label: "Job number", type: "text", required: true }],
+    };
+
+    render(<BarcodeScanner config={required} />);
+    await scanOne(user);
+
+    expect(screen.queryByText("Job number is required")).not.toBeInTheDocument();
+    expect(screen.queryByText("Scan at least one item")).not.toBeInTheDocument();
+  });
+
+  it("shows config errors in an alert above everything else", () => {
+    render(<BarcodeScanner config={config} configErrors={["Column 2 is missing a label"]} />);
+
+    const alert = screen.getByRole("alert");
+
+    expect(alert).toHaveClass("bsit-config-errors");
+    expect(alert).toHaveTextContent("This widget's settings have problems");
+    expect(alert).toHaveTextContent("Column 2 is missing a label");
+    expect(alert).toHaveTextContent("Fix the Columns setting in the form builder.");
+    expect(alert.parentElement?.firstElementChild).toBe(alert);
   });
 
   it("does not request a frame resize outside Jotform", async () => {
@@ -193,7 +288,7 @@ describe("BarcodeScanner", () => {
       requestFrameResize: resize,
     };
 
-    render(<BarcodeScanner columns={columns} />);
+    render(<BarcodeScanner config={config} />);
     await scanOne(user);
     await new Promise((resolve) => requestAnimationFrame(resolve));
 

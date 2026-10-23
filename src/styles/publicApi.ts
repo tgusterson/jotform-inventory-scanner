@@ -42,6 +42,8 @@ export const PUBLIC_CLASSES = [
   "bsit-scanned-items__input",
   "bsit-scanned-items__input--text",
   "bsit-scanned-items__input--number",
+  "bsit-scanned-items__required",
+  "bsit-scanned-items__error",
   "bsit-scanned-items__delete",
 ] as const;
 

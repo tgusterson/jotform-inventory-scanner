@@ -7,10 +7,14 @@ import { bootstrap } from "./lib/bootstrap";
 
 const root = createRoot(document.getElementById("root")!);
 
-bootstrap((columns, initialValue) => {
+bootstrap((config, configErrors, initialValue) => {
   root.render(
     <StrictMode>
-      <BarcodeScanner columns={columns} initialValue={initialValue} />
+      <BarcodeScanner
+        config={config}
+        configErrors={configErrors}
+        initialValue={initialValue}
+      />
     </StrictMode>,
   );
 });

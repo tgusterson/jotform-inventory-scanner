@@ -7,17 +7,68 @@ Built with React, TypeScript and Vite, and hosted on GitHub Pages.
 ## Using the widget in Jotform
 
 1. Host the build (GitHub Pages) and add a **Custom Widget** to your form using the widget URL.
-2. In the widget settings, set the `columns` setting, one column per line:
+2. In the widget settings, set the `columns` setting. It accepts two formats, chosen by the first character: text starting with `[` is read as JSON (text starting with `{` is reported as an error), anything else uses the line format. Validation rules are only available in the JSON format.
 
-   | Line | Meaning |
-   | --- | --- |
-   | `Label` | Text column |
-   | `Label=default` | Text column with a default value |
-   | `Label:number` | Number column |
-   | `Label:number=1` | Number column with a default value |
+   If `columns` is empty, the default columns in `src/lib/columns.ts` are used: a single `Quantity` number column, default `1`, minimum `1`.
 
-   If `columns` is empty, the default columns in `src/lib/columns.ts` are used.
+### Line format
 
+One column per line:
+
+| Line | Meaning |
+| --- | --- |
+| `Label` | Text column |
+| `Label=default` | Text column with a default value |
+| `Label:number` | Number column |
+| `Label:number=1` | Number column with a default value |
+
+### JSON format
+
+A JSON array of column objects (text starting with `[`). An object (`{`) is not supported and is reported as an error.
+
+```json
+[{ "label": "Job number" }, { "label": "Quantity", "type": "number", "min": 1 }]
+```
+
+Column fields:
+
+| Field | Meaning |
+| --- | --- |
+| `label` | Required. Column heading; also used to build the column key. |
+| `type` | `"text"` (default) or `"number"`. |
+| `default` | Default value, a string or a number. |
+| `required` | `true` if the column must be filled in. |
+| `pattern` | Regular expression the value must match. |
+| `message` | Text shown when the value doesn't match the pattern. |
+| `min`, `max` | Number limits. Only valid on number columns, and `min` must not exceed `max`. |
+
+Patterns always match the **whole** value, so `\d{7}` rejects `12345678`. You can include `^` and `$` or leave them out. In JSON, backslashes must be escaped: write `\\d`, not `\d`.
+
+Examples:
+
+| Purpose | Setting |
+| --- | --- |
+| Job number (2 letters + 7 digits) | `{ "label": "Job number", "pattern": "^[A-Za-z]{2}\\d{7}$" }` |
+| Digits only | `{ "label": "Batch", "pattern": "\\d+" }` |
+| Whole number quantity | `{ "label": "Quantity", "type": "number", "min": 1 }` |
+
+Problems in the setting (invalid JSON, a missing label, an invalid pattern, unknown properties) are shown in a banner at the top of the widget, including in the live form. Invalid parts are dropped and the rest of the setting still works; if no valid columns remain, the default columns are used.
+
+### Validation
+
+Column rules (`required`, `type: "number"`, `min`, `max`, `pattern`) are checked by the widget itself, not by the browser, so there are no browser popups. Only the configured columns are validated; the scanned code never is.
+
+How a value is checked (the first problem found is shown):
+
+1. Empty (after trimming spaces): an error if `required`, otherwise valid and no other rule is checked.
+2. Number columns: the whole value must be a number (`12abc` is rejected), then `min` and `max` are applied. Decimals and negatives are allowed unless you set `min`/`max`.
+3. `pattern`: the trimmed value must match. The error is your `message`, or `<label> is not in the expected format`.
+
+Messages for the other rules are `<label> is required`, `<label> must be a number`, `<label> must be at least <min>` and `<label> must be at most <max>`.
+
+When errors show: a field shows its error after the user leaves it. When the form is submitted, every error is shown at once, and if nothing has been scanned the widget shows "Scan at least one item". Required columns are marked with `*`.
+
+The widget tells Jotform whether the value is valid: `valid: false` when any rule fails or nothing was scanned. Jotform only blocks the submission when the widget is set to **Required** in the form builder; otherwise the data is still submitted.
 ### Submitted value
 
 The value is a JSON array with one object per scanned item. Keys are `Code` followed by each column label, and all values are strings. Jotform renders this as a table in notification emails.
@@ -84,10 +135,10 @@ Defined on `:root` in `src/styles/tokens.css`.
 
 ### Public classes
 
-- Root and messages: `bsit-barcode-scanner`, `bsit-barcode-scanner__error`
+- Root and messages: `bsit-barcode-scanner`, `bsit-barcode-scanner__error`, `bsit-config-errors`, `bsit-config-errors__title`, `bsit-config-errors__list`
 - Controls: `bsit-scanner-controls`, `bsit-scanner-controls__open`, `bsit-scanner-controls__open-title`, `bsit-scanner-controls__open-hint`, `bsit-scanner-controls__clear`
 - Camera: `bsit-camera-view`, `bsit-camera-view__video`, `bsit-camera-view__frame`, `bsit-camera-view__corner` (plus `--top-left`, `--top-right`, `--bottom-left`, `--bottom-right`), `bsit-camera-view__hint`, `bsit-camera-view__close`
-- Items: `bsit-scanned-items`, `bsit-scanned-items__empty`, `bsit-scanned-items__head`, `bsit-scanned-items__body`, `bsit-scanned-items__row` (and `--header`), `bsit-scanned-items__header` (plus `--code`, `--text`, `--number`, `--action`), `bsit-scanned-items__cell` (plus `--code`, `--field`, `--action`), `bsit-scanned-items__code`, `bsit-scanned-items__toggle`, `bsit-scanned-items__label`, `bsit-scanned-items__label-code`, `bsit-scanned-items__input` (plus `--text`, `--number`), `bsit-scanned-items__delete`
+- Items: `bsit-scanned-items`, `bsit-scanned-items__empty`, `bsit-scanned-items__head`, `bsit-scanned-items__body`, `bsit-scanned-items__row` (and `--header`), `bsit-scanned-items__header` (plus `--code`, `--text`, `--number`, `--action`), `bsit-scanned-items__cell` (plus `--code`, `--field`, `--action`), `bsit-scanned-items__code`, `bsit-scanned-items__toggle`, `bsit-scanned-items__label`, `bsit-scanned-items__label-code`, `bsit-scanned-items__input` (plus `--text`, `--number`), `bsit-scanned-items__required`, `bsit-scanned-items__error`, `bsit-scanned-items__delete`
 
 The machine-readable lists are in `src/styles/publicApi.ts` and are checked by tests.
 
@@ -97,6 +148,7 @@ States are exposed as `data-` attributes instead of modifier classes:
 
 - `.bsit-camera-view__frame[data-state="scanning" | "success"]`
 - `.bsit-scanned-items__cell--code[data-expanded="true" | "false"]` (whether the full code is showing)
+- `.bsit-scanned-items__cell--field[data-invalid="true"]` (the field currently shows a validation error)
 
 ### Examples
 

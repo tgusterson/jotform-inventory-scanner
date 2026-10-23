@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bootstrap, getSavedValue, READY_TIMEOUT_MS } from "./bootstrap";
 import { DEFAULT_COLUMNS } from "./columns";
 import { getJotform } from "./jotform";
+import type { WidgetConfig } from "./types";
+
+const DEFAULT_CONFIG: WidgetConfig = { columns: DEFAULT_COLUMNS };
 
 vi.mock("./jotform", () => ({ getJotform: vi.fn() }));
 vi.mock("./debug", () => ({ log: vi.fn() }));
@@ -54,7 +57,7 @@ describe("bootstrap", () => {
 
     bootstrap(render);
 
-    expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_COLUMNS, "");
+    expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_CONFIG, [], "");
   });
 
   it("renders on ready with parsed columns and the saved value", () => {
@@ -71,13 +74,42 @@ describe("bootstrap", () => {
     expect(api.getWidgetSetting).toHaveBeenCalledWith("columns");
     expect(render).toHaveBeenCalledOnce();
 
-    const [columns, initialValue] = render.mock.calls[0];
+    const [config, errors, initialValue] = render.mock.calls[0];
 
-    expect(columns.map((column: { label: string }) => column.label)).toEqual([
+    expect(errors).toEqual([]);
+    expect(config.columns.map((column: { label: string }) => column.label)).toEqual([
       "Job number",
       "Qty",
     ]);
     expect(initialValue).toBe("saved");
+  });
+
+  it("passes config errors to render and keeps working with the valid columns", () => {
+    const { api, fireReady } = createFakeJotform('[{"label":"A"},{"type":"number"}]');
+    vi.mocked(getJotform).mockReturnValue(api);
+    const render = vi.fn();
+
+    bootstrap(render);
+    fireReady();
+
+    const [config, errors] = render.mock.calls[0];
+
+    expect(config.columns.map((column: { label: string }) => column.label)).toEqual(["A"]);
+    expect(errors).toEqual(["Column 2 is missing a label"]);
+  });
+
+  it("reports invalid JSON and falls back to the default columns", () => {
+    const { api, fireReady } = createFakeJotform("[oops");
+    vi.mocked(getJotform).mockReturnValue(api);
+    const render = vi.fn();
+
+    bootstrap(render);
+    fireReady();
+
+    const [config, errors] = render.mock.calls[0];
+
+    expect(config).toEqual(DEFAULT_CONFIG);
+    expect(errors[0]).toMatch(/not valid JSON/);
   });
 
   it("uses default columns when the setting is empty or missing", () => {
@@ -88,7 +120,7 @@ describe("bootstrap", () => {
     bootstrap(render);
     fireReady();
 
-    expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_COLUMNS, "");
+    expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_CONFIG, [], "");
   });
 
   it("falls back to defaults if ready never fires", () => {
@@ -103,7 +135,7 @@ describe("bootstrap", () => {
 
     vi.advanceTimersByTime(1);
 
-    expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_COLUMNS, "");
+    expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_CONFIG, [], "");
   });
 
   it("renders only once if ready fires before the fallback", () => {

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScannedItemsTable } from "./ScannedItemsTable";
@@ -21,6 +21,8 @@ function renderTable(overrides: Partial<Parameters<typeof ScannedItemsTable>[0]>
     <ScannedItemsTable
       items={items}
       columns={columns}
+      errors={{}}
+      showAllErrors={false}
       onValueChange={onValueChange}
       onDelete={onDelete}
       {...overrides}
@@ -70,7 +72,7 @@ describe("ScannedItemsTable", () => {
     renderTable();
 
     expect(screen.getByLabelText(/Job number/)).toHaveAttribute("type", "text");
-    expect(screen.getByLabelText(/Quantity/)).toHaveAttribute("type", "number");
+    expect(screen.getByLabelText(/Quantity/)).toHaveAttribute("inputmode", "decimal");
     expect(screen.getByLabelText("Quantity for ABC123")).toBeInTheDocument();
   });
 
@@ -122,5 +124,193 @@ describe("ScannedItemsTable", () => {
 
       expect(cell).toHaveAttribute("data-expanded", "false");
     });
+  });
+});
+
+describe("ScannedItemsTable validation", () => {
+  const validationColumns: ColumnConfig[] = [
+    { key: "job", label: "Job number", type: "text", required: true, pattern: "\\d+" },
+    { key: "qty", label: "Quantity", type: "number", min: 1 },
+  ];
+  const errors = { "item-1": { job: "Job number is required" } };
+
+  it("hides errors until the field is blurred", async () => {
+    const user = userEvent.setup();
+
+    renderTable({ columns: validationColumns, errors });
+
+    const input = screen.getByLabelText(/Job number/);
+
+    expect(screen.queryByText("Job number is required")).not.toBeInTheDocument();
+    expect(input).not.toHaveAttribute("aria-invalid");
+
+    await user.click(input);
+    await user.tab();
+
+    expect(screen.getByText("Job number is required")).toBeInTheDocument();
+  });
+
+  it("shows all errors when showAllErrors is true", () => {
+    renderTable({ columns: validationColumns, errors, showAllErrors: true });
+
+    expect(screen.getByText("Job number is required")).toBeInTheDocument();
+  });
+
+  it("links the invalid input to its message", () => {
+    renderTable({ columns: validationColumns, errors, showAllErrors: true });
+
+    const input = screen.getByLabelText(/Job number/);
+    const message = screen.getByText("Job number is required");
+
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAttribute("aria-describedby", message.id);
+    expect(message).toHaveClass("bsit-scanned-items__error");
+    expect(input.closest("[data-invalid]")).toHaveAttribute("data-invalid", "true");
+  });
+
+  it("marks required columns", () => {
+    const { container } = render(
+      <ScannedItemsTable
+        items={items}
+        columns={validationColumns}
+        errors={{}}
+        showAllErrors={false}
+        onValueChange={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(/Job number/)).toHaveAttribute("aria-required", "true");
+    expect(screen.getByLabelText(/Quantity/)).not.toHaveAttribute("aria-required");
+    expect(container.querySelectorAll(".bsit-scanned-items__required")).toHaveLength(1);
+    expect(container.querySelector(".bsit-scanned-items__required")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  });
+
+  it("uses no native validation attributes and disables browser validation", () => {
+    const { container } = render(
+      <ScannedItemsTable
+        items={items}
+        columns={validationColumns}
+        errors={{}}
+        showAllErrors={false}
+        onValueChange={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    for (const input of screen.getAllByRole("textbox")) {
+      for (const name of ["required", "pattern", "min", "max"]) {
+        expect(input).not.toHaveAttribute(name);
+      }
+    }
+
+    expect(container.querySelector("form")).toHaveAttribute("novalidate");
+  });
+
+  it("only reveals the error of the field that was blurred", async () => {
+    const user = userEvent.setup();
+    const twoErrors = {
+      "item-1": { job: "Job number is required", qty: "Quantity must be at least 1" },
+    };
+
+    renderTable({ columns: validationColumns, errors: twoErrors });
+    await user.click(screen.getByLabelText(/Job number/));
+    await user.tab();
+
+    expect(screen.getByText("Job number is required")).toBeInTheDocument();
+    expect(screen.queryByText("Quantity must be at least 1")).not.toBeInTheDocument();
+  });
+
+  it("keeps a touched field's error tracking in sync when the error is fixed", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ScannedItemsTable
+        items={items}
+        columns={validationColumns}
+        errors={errors}
+        showAllErrors={false}
+        onValueChange={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText(/Job number/));
+    await user.tab();
+    expect(screen.getByText("Job number is required")).toBeInTheDocument();
+
+    rerender(
+      <ScannedItemsTable
+        items={items}
+        columns={validationColumns}
+        errors={{}}
+        showAllErrors={false}
+        onValueChange={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByLabelText(/Job number/);
+
+    expect(screen.queryByText("Job number is required")).not.toBeInTheDocument();
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).not.toHaveAttribute("aria-describedby");
+    expect(input.closest("[data-invalid]")).toBeNull();
+  });
+
+  it("gives each row's error message a unique id", () => {
+    const twoItems: ScannedItem[] = [
+      { id: "item-1", code: "A", values: { job: "" } },
+      { id: "item-2", code: "B", values: { job: "" } },
+    ];
+
+    renderTable({
+      items: twoItems,
+      columns: [validationColumns[0]],
+      errors: {
+        "item-1": { job: "Job number is required" },
+        "item-2": { job: "Job number is required" },
+      },
+      showAllErrors: true,
+    });
+
+    const ids = screen.getAllByText("Job number is required").map((node) => node.id);
+
+    expect(ids[0]).toBeTruthy();
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  it("prevents the default form submission", () => {
+    const { container } = render(
+      <ScannedItemsTable
+        items={items}
+        columns={validationColumns}
+        errors={{}}
+        showAllErrors={false}
+        onValueChange={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const notPrevented = fireEvent.submit(container.querySelector("form")!);
+
+    expect(notPrevented).toBe(false);
+  });
+
+  it("does not render a form or errors for the empty state", () => {
+    const { container } = render(
+      <ScannedItemsTable
+        items={[]}
+        columns={validationColumns}
+        errors={{}}
+        showAllErrors
+        onValueChange={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector("form")).toBeNull();
   });
 });

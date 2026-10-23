@@ -92,6 +92,20 @@
         font-size: var(--bsit-font-size-base);
     }
 
+    .bsit-scanned-items__cell[data-invalid="true"] .bsit-scanned-items__input {
+        border-color: var(--bsit-color-error);
+    }
+
+    .bsit-scanned-items__required {
+        color: var(--bsit-color-error);
+    }
+
+    .bsit-scanned-items__error {
+        margin-top: var(--bsit-space-1);
+        color: var(--bsit-color-error);
+        font-size: var(--bsit-font-size-small);
+    }
+
     .bsit-scanned-items__delete {
         min-height: var(--bsit-input-height);
         padding: 0 var(--bsit-space-4);

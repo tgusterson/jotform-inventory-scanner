@@ -1,12 +1,15 @@
 import { useId, useState } from "react";
 import "./ScannedItemsTable.css";
 import type { ColumnConfig, ScannedItem } from "../lib/types";
+import type { ItemErrors } from "../lib/validation";
 
 const LONG_CODE_LENGTH = 40;
 
 type ScannedItemsTableProps = {
     items: ScannedItem[];
     columns: ColumnConfig[];
+    errors: ItemErrors;
+    showAllErrors: boolean;
     onValueChange: (id: string, key: string, value: string) => void;
     onDelete: (id: string) => void;
 };
@@ -14,12 +17,20 @@ type ScannedItemsTableProps = {
 export function ScannedItemsTable({
     items,
     columns,
+    errors,
+    showAllErrors,
     onValueChange,
     onDelete,
 }: ScannedItemsTableProps) {
     const baseId = useId();
     // UI-only state: ids of rows whose full code is showing.
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    // UI-only state: "itemId:columnKey" of fields the user has left.
+    const [touched, setTouched] = useState<Set<string>>(new Set());
+
+    function markTouched(id: string, key: string) {
+        setTouched((current) => new Set(current).add(`${id}:${key}`));
+    }
 
     function toggleExpanded(id: string) {
         setExpandedIds((current) => {
@@ -42,6 +53,7 @@ export function ScannedItemsTable({
     }
 
     return (
+        <form noValidate onSubmit={(event) => event.preventDefault()}>
         <div className="bsit-scanned-items" role="table" aria-label="Scanned items">
             <div className="bsit-scanned-items__head" role="rowgroup">
                 <div className="bsit-scanned-items__row bsit-scanned-items__row--header" role="row">
@@ -105,12 +117,18 @@ export function ScannedItemsTable({
 
                             {columns.map((column) => {
                                 const inputId = `${baseId}-${item.id}-${column.key}`;
+                                const errorId = `${inputId}-error`;
+                                const message =
+                                    showAllErrors || touched.has(`${item.id}:${column.key}`)
+                                        ? errors[item.id]?.[column.key]
+                                        : undefined;
 
                                 return (
                                     <div
                                         key={column.key}
                                         className="bsit-scanned-items__cell bsit-scanned-items__cell--field"
                                         role="cell"
+                                        data-invalid={message ? "true" : undefined}
                                     >
                                         <label
                                             className="bsit-scanned-items__label"
@@ -120,17 +138,35 @@ export function ScannedItemsTable({
                                             <span className="bsit-scanned-items__label-code">
                                                 {" "}for {item.code}
                                             </span>
+                                            {column.required && (
+                                                <span
+                                                    className="bsit-scanned-items__required"
+                                                    aria-hidden="true"
+                                                >
+                                                    {" "}*
+                                                </span>
+                                            )}
                                         </label>
+                                        {/* Number columns use a text input so "12abc" reaches our validation instead of being blanked by the browser. */}
                                         <input
                                             id={inputId}
                                             className={`bsit-scanned-items__input bsit-scanned-items__input--${column.type}`}
-                                            type={column.type}
-                                            inputMode={column.type === "number" ? "numeric" : undefined}
+                                            type="text"
+                                            inputMode={column.type === "number" ? "decimal" : undefined}
                                             value={item.values[column.key] ?? ""}
+                                            aria-required={column.required ? "true" : undefined}
+                                            aria-invalid={message ? "true" : undefined}
+                                            aria-describedby={message ? errorId : undefined}
                                             onChange={(event) =>
                                                 onValueChange(item.id, column.key, event.target.value)
                                             }
+                                            onBlur={() => markTouched(item.id, column.key)}
                                         />
+                                        {message && (
+                                            <p id={errorId} className="bsit-scanned-items__error">
+                                                {message}
+                                            </p>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -152,5 +188,6 @@ export function ScannedItemsTable({
                 })}
             </div>
         </div>
+        </form>
     );
 }
