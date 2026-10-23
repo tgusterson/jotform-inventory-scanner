@@ -3,11 +3,11 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { CameraView } from "./CameraView";
 import { ScannerControls } from "./ScannerControls";
 import { ScannedItemsTable } from "./ScannedItemsTable";
-import type { ColumnConfig, ScannedItem } from "./types";
-import { itemsReducer } from "./itemsReducer";
-import { formatSubmission, parseSubmission } from "./submissionFormat";
-import { log } from "./debug";
-import { getJotform } from "./jotform";
+import type { ColumnConfig, ScannedItem } from "../lib/types";
+import { itemsReducer } from "../lib/itemsReducer";
+import { formatSubmission, parseSubmission } from "../lib/submissionFormat";
+import { log } from "../lib/debug";
+import { getJotform } from "../lib/jotform";
 
 type BarcodeScannerProps = {
   columns: ColumnConfig[];

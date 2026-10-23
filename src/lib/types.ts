@@ -12,3 +12,7 @@ export type ScannedItem = {
     code: string;
     values: Record<string, string>;
 };
+export type ParsedSubmission = {
+    rows: { code: string; values: Record<string, string> }[];
+    unmatched: string[];
+};

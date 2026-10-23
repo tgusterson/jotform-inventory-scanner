@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import "./ScannedItemsTable.css";
-import type { ColumnConfig, ScannedItem } from "./types";
+import type { ColumnConfig, ScannedItem } from "../lib/types";
 
 const LONG_CODE_LENGTH = 40;
 

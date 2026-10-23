@@ -1,79 +1,50 @@
-# React + TypeScript + Vite
+# Jotform Inventory Scanner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Jotform custom iFrame widget that scans barcodes and QR codes with the device camera. Each scan adds a row, and extra columns (job number, quantity, etc.) are configured in the widget settings. The widget also runs standalone (outside Jotform) for development.
 
-Currently, two official plugins are available:
+Built with React, TypeScript and Vite, and hosted on GitHub Pages.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Using the widget in Jotform
 
-## React Compiler
+1. Host the build (GitHub Pages) and add a **Custom Widget** to your form using the widget URL.
+2. In the widget settings, set the `columns` setting, one column per line:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+   | Line | Meaning |
+   | --- | --- |
+   | `Label` | Text column |
+   | `Label=default` | Text column with a default value |
+   | `Label:number` | Number column |
+   | `Label:number=1` | Number column with a default value |
 
-## Expanding the ESLint configuration
+   If `columns` is empty, the default columns in `src/lib/columns.ts` are used.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Submitted value
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+The value is a JSON array with one object per scanned item. Keys are `Code` followed by each column label, and all values are strings. Jotform renders this as a table in notification emails.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```json
+[{ "Code": "ABC-123", "Job number": "J7", "Quantity": "3" }]
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+When a submission is edited, the saved value is restored into the table. Earlier line-based and HTML-table formats are still parsed (see `src/lib/legacyFormats.ts`).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Development
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm install
+npm run dev            # local dev server
+npm run test:run       # run tests once
+npm run test:coverage  # tests with coverage report
+npm run build          # type-check and production build
 ```
 
+Camera access needs HTTPS or `localhost`. Debug logging is controlled by `DEBUG` in `src/lib/debug.ts`; set it to `false` before a production release.
+
+### Project structure
+
+- `src/BarcodeScanner/`: UI components and their CSS
+- `src/lib/`: reducer, submission format, Jotform wrapper, column parsing, types
+- `src/styles/`: design tokens and the public styling contract
 ## Styling
 
 The widget's styles are plain CSS with BEM class names, all prefixed with `bsit-`. Everything we ship lives in the CSS cascade layer `bsit` (the reset in `bsit-reset`). Jotform's widget **Custom CSS** tab injects unlayered CSS, so your rules always win over ours without `!important` or extra specificity.

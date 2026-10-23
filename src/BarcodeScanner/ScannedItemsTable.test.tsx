@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScannedItemsTable } from "./ScannedItemsTable";
-import type { ColumnConfig, ScannedItem } from "./types";
+import type { ColumnConfig, ScannedItem } from "../lib/types";
 
 const columns: ColumnConfig[] = [
   { key: "job", label: "Job number", type: "text" },

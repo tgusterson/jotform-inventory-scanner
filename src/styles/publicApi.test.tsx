@@ -4,8 +4,8 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { BarcodeScanner } from "../components/BarcodeScanner/BarcodeScanner";
-import { DEFAULT_COLUMNS } from "../components/BarcodeScanner/columns";
+import { BarcodeScanner } from "../BarcodeScanner/BarcodeScanner";
+import { DEFAULT_COLUMNS } from "../lib/columns";
 import { PUBLIC_CLASSES, PUBLIC_TOKENS } from "./publicApi";
 
 // Vitest stubs CSS imports (including ?raw) to empty strings, so read the file directly.
@@ -25,7 +25,7 @@ vi.mock("react-zxing", () => ({
   },
 }));
 
-vi.mock("../components/BarcodeScanner/isBoxInsideFrame", () => ({
+vi.mock("../BarcodeScanner/isBoxInsideFrame", () => ({
   isBoxInsideFrame: () => true,
 }));
 
