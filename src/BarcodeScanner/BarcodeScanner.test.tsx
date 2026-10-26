@@ -265,6 +265,43 @@ describe("BarcodeScanner", () => {
     expect(screen.queryByText("Scan at least one item")).not.toBeInTheDocument();
   });
 
+  it("tells the user to reload when settings failed to load", () => {
+    render(
+      <BarcodeScanner config={config} configErrors={["Settings did not load"]} settingsFailed />,
+    );
+
+    const alert = screen.getByRole("alert");
+
+    expect(alert).toHaveTextContent("Settings did not load");
+    expect(alert).toHaveTextContent("Reload the form to try again.");
+    expect(alert).not.toHaveTextContent("Fix the Columns setting");
+  });
+
+  describe("when settings failed to load", () => {
+    it("never overwrites the saved value with sendData", async () => {
+      const user = userEvent.setup();
+      const { api } = createFakeJotform();
+      vi.mocked(getJotform).mockReturnValue(api);
+
+      render(<BarcodeScanner config={config} settingsFailed />);
+      await scanOne(user);
+
+      expect(api.sendData).not.toHaveBeenCalled();
+    });
+
+    it("submits as not valid even when every rule passes", async () => {
+      const user = userEvent.setup();
+      const { api, submit } = createFakeJotform();
+      vi.mocked(getJotform).mockReturnValue(api);
+
+      render(<BarcodeScanner config={config} settingsFailed />);
+      await scanOne(user);
+      act(() => submit());
+
+      expect(api.sendSubmit.mock.calls[0][0].valid).toBe(false);
+    });
+  });
+
   it("shows config errors in an alert above everything else", () => {
     render(<BarcodeScanner config={config} configErrors={["Column 2 is missing a label"]} />);
 

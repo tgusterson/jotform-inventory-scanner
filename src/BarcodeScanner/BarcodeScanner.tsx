@@ -1,5 +1,5 @@
 import "./BarcodeScanner.css";
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { CameraView } from "./CameraView";
 import { ScannerControls } from "./ScannerControls";
 import { ScannedItemsTable } from "./ScannedItemsTable";
@@ -14,6 +14,8 @@ type BarcodeScannerProps = {
   config: WidgetConfig;
   configErrors?: string[];
   initialValue?: string;
+  // True when Jotform's settings and saved value never arrived; nothing is saved or submitted as valid.
+  settingsFailed?: boolean;
 };
 
 function initItems({
@@ -38,6 +40,7 @@ export function BarcodeScanner({
   config,
   configErrors = [],
   initialValue = "",
+  settingsFailed = false,
 }: BarcodeScannerProps) {
   const { columns } = config;
   const [items, dispatch] = useReducer(
@@ -52,18 +55,20 @@ export function BarcodeScanner({
   const columnsRef = useRef(columns);
   const configRef = useRef(config);
   const hasSubscribedRef = useRef(false);
+  const settingsFailedRef = useRef(settingsFailed);
   const validation = useMemo(() => validateItems(items, config), [items, config]);
   const errorCount = Object.values(validation.errors).reduce(
     (total, fields) => total + Object.keys(fields).length,
     0,
   );
 
-  itemsRef.current = items;
-
-  useEffect(() => {
+  // Layout effect so the refs are current before any Jotform event can fire after a commit.
+  useLayoutEffect(() => {
+    itemsRef.current = items;
     columnsRef.current = columns;
     configRef.current = config;
-  }, [columns, config]);
+    settingsFailedRef.current = settingsFailed;
+  }, [items, columns, config, settingsFailed]);
 
   useEffect(() => {
     const jotform = getJotform();
@@ -84,15 +89,19 @@ export function BarcodeScanner({
 
       log("validation", result);
       setShowAllErrors(true);
-      jotform.sendSubmit({ valid: result.valid, value });
+      jotform.sendSubmit({
+        valid: result.valid && !settingsFailedRef.current,
+        value,
+      });
     });
   }, []);
 
   // Keep Jotform's stored value in sync so edits are saved even without a submit.
+  // Not when settings failed to load: the empty table would overwrite the saved value.
   useEffect(() => {
     const jotform = getJotform();
 
-    if (!jotform?.sendData) {
+    if (!jotform?.sendData || settingsFailed) {
       return;
     }
 
@@ -100,7 +109,7 @@ export function BarcodeScanner({
 
     log("sendData", value);
     jotform.sendData({ value });
-  }, [items, columns]);
+  }, [items, columns, settingsFailed]);
 
   useEffect(() => {
     const jotform = getJotform();
@@ -161,7 +170,11 @@ export function BarcodeScanner({
               <li key={index}>{message}</li>
             ))}
           </ul>
-          <p>Fix the Columns setting in the form builder.</p>
+          <p>
+            {settingsFailed
+              ? "Reload the form to try again."
+              : "Fix the Columns setting in the form builder."}
+          </p>
         </div>
       )}
 

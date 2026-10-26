@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { bootstrap, getSavedValue, READY_TIMEOUT_MS } from "./bootstrap";
+import {
+  bootstrap,
+  getSavedValue,
+  READY_TIMEOUT_MS,
+  SETTINGS_TIMEOUT_ERROR,
+} from "./bootstrap";
 import { DEFAULT_COLUMNS } from "./columns";
 import { getJotform } from "./jotform";
 import type { WidgetConfig } from "./types";
@@ -137,7 +142,7 @@ describe("bootstrap", () => {
     expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_CONFIG, [], "");
   });
 
-  it("falls back to defaults if ready never fires", () => {
+  it("renders the defaults with a settings-failed warning if ready never fires", () => {
     const { api } = createFakeJotform("Label");
     vi.mocked(getJotform).mockReturnValue(api);
     const render = vi.fn();
@@ -149,10 +154,15 @@ describe("bootstrap", () => {
 
     vi.advanceTimersByTime(1);
 
-    expect(render).toHaveBeenCalledExactlyOnceWith(DEFAULT_CONFIG, [], "");
+    expect(render).toHaveBeenCalledExactlyOnceWith(
+      DEFAULT_CONFIG,
+      [SETTINGS_TIMEOUT_ERROR],
+      "",
+      true,
+    );
   });
 
-  it("renders only once if ready fires before the fallback", () => {
+  it("renders only once if ready fires before the timeout", () => {
     const { api, fireReady } = createFakeJotform("Label");
     vi.mocked(getJotform).mockReturnValue(api);
     const render = vi.fn();
@@ -162,17 +172,20 @@ describe("bootstrap", () => {
     vi.advanceTimersByTime(READY_TIMEOUT_MS);
 
     expect(render).toHaveBeenCalledOnce();
+    expect(render.mock.calls[0]).toHaveLength(3);
   });
 
-  it("ignores a late ready after the fallback rendered", () => {
-    const { api, fireReady } = createFakeJotform("Label");
+  it("ignores a late ready so it can never replace the user's scanned rows", () => {
+    const { api, fireReady } = createFakeJotform("Job number\nQty:number=1");
     vi.mocked(getJotform).mockReturnValue(api);
     const render = vi.fn();
 
     bootstrap(render);
     vi.advanceTimersByTime(READY_TIMEOUT_MS);
-    fireReady({ value: "x" });
+    fireReady({ value: "saved" });
+    fireReady({ value: "again" });
 
     expect(render).toHaveBeenCalledOnce();
+    expect(api.getWidgetSetting).not.toHaveBeenCalled();
   });
 });

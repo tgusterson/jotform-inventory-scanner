@@ -5,6 +5,8 @@ import { parseConfig } from "./parseConfig";
 import type { WidgetConfig } from "./types";
 
 export const READY_TIMEOUT_MS = 3000;
+export const SETTINGS_TIMEOUT_ERROR =
+  "The widget's settings and saved data did not load in time. The default columns are shown, and nothing is saved.";
 
 const DEFAULT_CONFIG: WidgetConfig = { columns: DEFAULT_COLUMNS };
 
@@ -18,12 +20,19 @@ export function getSavedValue(data: unknown): string {
   return "";
 }
 
-/** Calls render exactly once, after Jotform is ready or immediately when standalone. */
+/**
+ * Calls renderApp exactly once: when Jotform is ready, or immediately when standalone.
+ * If "ready" hasn't arrived after READY_TIMEOUT_MS, it renders the default
+ * columns with settingsFailed = true so the widget can warn the user instead of
+ * showing the wrong columns silently. A "ready" that arrives after that is ignored,
+ * so it can never replace rows the user has already scanned.
+ */
 export function bootstrap(
   renderApp: (
     config: WidgetConfig,
     configErrors: string[],
     initialValue: string,
+    settingsFailed?: boolean,
   ) => void,
 ) {
   let hasRendered = false;
@@ -32,13 +41,19 @@ export function bootstrap(
     config: WidgetConfig,
     configErrors: string[],
     initialValue: string,
+    settingsFailed?: boolean,
   ) {
     if (hasRendered) {
       return;
     }
 
     hasRendered = true;
-    renderApp(config, configErrors, initialValue);
+
+    if (settingsFailed) {
+      renderApp(config, configErrors, initialValue, true);
+    } else {
+      renderApp(config, configErrors, initialValue);
+    }
   }
 
   const jotform = getJotform();
@@ -50,7 +65,11 @@ export function bootstrap(
   }
 
   jotform.subscribe("ready", (data?: unknown) => {
-    log("ready data", data);
+    log("ready data", data, hasRendered ? "(ignored, too late)" : "");
+
+    if (hasRendered) {
+      return;
+    }
 
     const setting = jotform.getWidgetSetting("columns");
 
@@ -67,6 +86,8 @@ export function bootstrap(
     render(config, errors, getSavedValue(data));
   });
 
-  // Fallback so the widget never stays blank if "ready" doesn't arrive.
-  window.setTimeout(() => render(DEFAULT_CONFIG, [], ""), READY_TIMEOUT_MS);
+  window.setTimeout(
+    () => render(DEFAULT_CONFIG, [SETTINGS_TIMEOUT_ERROR], "", true),
+    READY_TIMEOUT_MS,
+  );
 }

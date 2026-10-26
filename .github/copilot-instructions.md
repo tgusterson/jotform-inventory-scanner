@@ -46,8 +46,8 @@ src/lib/
 - legacyFormats.ts: parsers for older submission formats, so old saved values still restore.
 - findColumn.ts: finds a column by label (exact, then case-insensitive).
 - jotform.ts: typed wrapper around the Jotform widget API; getJotform() is the only entry point.
-- bootstrap.ts: waits for Jotform's ready event, reads the "columns" setting and saved value, and renders.
-- debug.ts: log() helper controlled by the DEBUG flag.
+- bootstrap.ts: waits for Jotform's ready event, reads the "columns" setting and saved value, and renders once; after a 3 s timeout it renders the defaults with a settings-failed warning instead.
+- debug.ts: log() helper; on in dev builds or with ?debug in the URL, off otherwise.
 
 src/styles/
 

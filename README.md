@@ -94,7 +94,11 @@ npm run lint           # ESLint
 npm run build          # type-check and production build
 ```
 
-Camera access needs HTTPS or `localhost`. Debug logging is controlled by `DEBUG` in `src/lib/debug.ts`; set it to `false` before a production release.
+Camera access needs HTTPS or `localhost`.
+
+Debug logging (`log()` in `src/lib/debug.ts`) is on in dev builds (`npm run dev`) and off in production builds. To debug a deployed widget, add `?debug` to the widget URL (for example `https://<user>.github.io/jotform-inventory-scanner/?debug`) and look at the browser console.
+
+If Jotform's `ready` event hasn't arrived after 3 seconds, the widget shows the default columns with a warning banner ("did not load in time ... Reload the form to try again"). In that state nothing is auto-saved and a submit is sent as not valid, so the empty table can't overwrite saved data. A `ready` that arrives after that is ignored, so it can't replace rows already scanned.
 
 Outside Jotform the widget runs standalone with the default columns. To try other columns locally, change `DEFAULT_COLUMNS` in `src/lib/columns.ts` temporarily.
 
