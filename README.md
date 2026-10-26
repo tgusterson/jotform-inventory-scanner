@@ -6,8 +6,8 @@ Built with React, TypeScript and Vite, and hosted on GitHub Pages.
 
 ## Using the widget in Jotform
 
-1. Host the build (GitHub Pages) and add a **Custom Widget** to your form using the widget URL.
-2. In the widget settings, set the `columns` setting: one column per line, written as a label followed by optional `;`-separated flags and options (see below). Text that looks like JSON (starts with `[` or `{`) is not supported and is reported as an error.
+1. Host the build and add a **Custom Widget** to your form using the widget URL. Pushing to `main` deploys to GitHub Pages automatically (`.github/workflows/deploy.yml`), at `https://<user>.github.io/jotform-inventory-scanner/`.
+2. In the widget settings, set the `columns` setting: one column per line, written as a label followed by optional `;`-separated flags and options (see below). Text that looks like JSON (starts with `[` or `{`) is not supported, because Jotform corrupts settings that look like JSON, and is reported as an error.
 
    If `columns` is empty, the default columns in `src/lib/columns.ts` are used: a single `Quantity` number column, default `1`, minimum `1`.
 
@@ -72,6 +72,7 @@ Messages for the other rules are `<label> is required`, `<label> must be a numbe
 When errors show: a field shows its error after the user leaves it. When the form is submitted, every error is shown at once, and if nothing has been scanned the widget shows "Scan at least one item". Required columns are marked with `*`.
 
 The widget tells Jotform whether the value is valid: `valid: false` when any rule fails or nothing was scanned. Jotform only blocks the submission when the widget is set to **Required** in the form builder; otherwise the data is still submitted.
+
 ### Submitted value
 
 The value is a JSON array with one object per scanned item. Keys are `Code` followed by each column label, and all values are strings. Jotform renders this as a table in notification emails.
@@ -80,7 +81,7 @@ The value is a JSON array with one object per scanned item. Keys are `Code` foll
 [{ "Code": "ABC-123", "Job number": "J7", "Quantity": "3" }]
 ```
 
-When a submission is edited, the saved value is restored into the table. Earlier line-based and HTML-table formats are still parsed (see `src/lib/legacyFormats.ts`).
+When a submission is edited, the saved value is restored into the table. Values are matched to columns by label (not case-sensitive), so renaming a column in the `columns` setting leaves old values for the old label unmatched. Earlier line-based and HTML-table formats are still parsed (see `src/lib/legacyFormats.ts`).
 
 ## Development
 
@@ -89,16 +90,23 @@ npm install
 npm run dev            # local dev server
 npm run test:run       # run tests once
 npm run test:coverage  # tests with coverage report
+npm run lint           # ESLint
 npm run build          # type-check and production build
 ```
 
 Camera access needs HTTPS or `localhost`. Debug logging is controlled by `DEBUG` in `src/lib/debug.ts`; set it to `false` before a production release.
 
+Outside Jotform the widget runs standalone with the default columns. To try other columns locally, change `DEFAULT_COLUMNS` in `src/lib/columns.ts` temporarily.
+
 ### Project structure
 
+- `src/main.tsx`: entry point
 - `src/BarcodeScanner/`: UI components and their CSS
-- `src/lib/`: reducer, submission format, Jotform wrapper, column parsing, types
+- `src/lib/`: pure logic, each with a test beside it: `parseConfig` (columns setting), `validation`, `pattern`, `gridColumns` (table column widths), `itemsReducer`, `submissionFormat`, the Jotform wrapper and `bootstrap`, plus types
 - `src/styles/`: design tokens and the public styling contract
+
+A one-line description of every file is in `.github/copilot-instructions.md`.
+
 ## Styling
 
 The widget's styles are plain CSS with BEM class names, all prefixed with `bsit-`. Everything we ship lives in the CSS cascade layer `bsit` (the reset in `bsit-reset`). Jotform's widget **Custom CSS** tab injects unlayered CSS, so your rules always win over ours without `!important` or extra specificity.
